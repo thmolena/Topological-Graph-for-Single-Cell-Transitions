@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Topological Graph RL for Single-Cell State Transition and Perturbation Forecasting"
+authors:
+  - family-names: Huynh
+    given-names: Molena
+    orcid: ""
+version: 0.1.0
+date-released: 2027-01-01
+license: MIT
+repository-code: "https://github.com/thmolena/P4-Topological-Graph-RL-for-Single-Cell-Transitions"
+keywords:
+  - single-cell genomics
+  - cell-state transitions
+  - graph neural networks
+  - active learning
+  - topological machine learning

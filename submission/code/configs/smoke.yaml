@@ -1,0 +1,18 @@
+# Smoke / demo configuration: runs in a few seconds on a laptop CPU.
+# Numbers from this config are demo-scale (few hundred cells, one seed) -- the
+# reported-scale numbers come from configs/full.yaml.
+name: smoke
+seed: 0
+n_cells: 400
+n_features: 8
+n_branches: 3
+n_donors: 4
+n_batches: 2
+n_perturbations: 3
+noise: 0.7
+rare_fraction: 0.05
+k: 15
+label_fraction: 0.1
+splits: [donor, batch, time, perturbation]
+active_budget: 20
+n_seeds: 1

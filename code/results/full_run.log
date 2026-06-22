@@ -1,0 +1,17 @@
+==> config: configs/full.yaml
+[full] cells=3000  states=4  graph-smoothed acc=0.6587  (+0.0595 vs baseline)  active rare-recall=0.3556 (+0.3309 vs random)  runtime=19.5581s
+wrote results/main_results.tex, results/main_results.md
+| split | method | accuracy | ECE | rare-state recall |
+|---|---|---|---|---|
+| donor | **graph-smoothed** | **0.7004** | 0.1247 | **0.1520** |
+| donor | baseline kNN | 0.6550 | 0.1073 | 0.0000 |
+| batch | **graph-smoothed** | **0.6995** | 0.1383 | **0.4618** |
+| batch | baseline kNN | 0.6355 | 0.0905 | 0.0320 |
+| time | **graph-smoothed** | **0.5474** | 0.1328 | **0.0000** |
+| time | baseline kNN | 0.4574 | 0.0970 | 0.0000 |
+| perturbation | **graph-smoothed** | **0.6875** | 0.1649 | **0.3393** |
+| perturbation | baseline kNN | 0.6490 | 0.1184 | 0.0286 |
+wrote figures/fig_lineage.pdf, figures/fig_forecast.pdf
+AUDIT PASSED: all numbers traceable, phrase present, no forbidden claims.
+==> done. See results/summary.json, results/*.tex, figures/*.pdf
+SINGLECELL full-run EXIT=0 at 13:53:19

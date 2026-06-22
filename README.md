@@ -86,9 +86,7 @@ The Betti-0 curve, per-split breakdown and integrity flags are written to
     ├── Makefile                One-word targets: install · test · demo · tables · figures · audit · full-run
     ├── README.md               Code-artifact quickstart and layout
     ├── environment.yml         Conda environment (CPU-only)
-    ├── requirements.txt        pip dependencies (numpy · scipy · networkx · scikit-learn · matplotlib)
-    ├── requirements-optional-gpu.txt   Optional accelerated backends (RAPIDS cuML/cuGraph · PyG); never required
-    ├── pyproject.toml          Package metadata / editable install
+    ├── pyproject.toml          Package metadata / source-tree execution
     ├── src/topocell/           The library (see file-by-file table below)
     ├── scripts/                Thin command-line entry points around the library
     ├── configs/                smoke.yaml (demo scale) · full.yaml (reported scale)
@@ -159,7 +157,7 @@ as the Python package.
 ## GPU / acceleration note
 
 The reference implementation is **CPU-only and runs everywhere**. The architecture exposes
-optional accelerated backends ([`code/requirements-optional-gpu.txt`](code/requirements-optional-gpu.txt)):
+optional accelerated backends that can be installed separately:
 a **RAPIDS cuML** GPU kNN build and **cuGraph** connected-components for million-cell atlases,
 a **PyTorch-Geometric** message-passing GNN as a learned drop-in for the label-propagation
 forecaster, and GPU-batched graph diffusion. None are required to reproduce the results.

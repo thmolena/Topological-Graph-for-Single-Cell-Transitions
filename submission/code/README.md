@@ -10,9 +10,13 @@ Real data plugs in via honest stubs (`ingest.py`); nothing is fabricated.
 
 ## Install
 ```bash
-conda env create -f environment.yml && conda activate topocell   # or:
-pip install -r requirements.txt && pip install -e .
+conda env create -f environment.yml && conda activate topocell
+pip install -e .          # installs the `topocell` package (CPU reference)
+pip install -e .[gpu]     # optional: add the torch GPU/GNN backend
 ```
+
+The scripts also bootstrap `src/` onto `sys.path`, so an editable install is
+optional; `export PYTHONPATH=src` is enough to run the reproduction targets.
 
 ## Reproduce
 ```bash
@@ -59,4 +63,4 @@ and the rare-state-recall gain from active sampling. Integrity flags
 of truth for every table, figure and macro.
 
 All experiments are reproducible on commodity hardware; runtime and memory are reported for each benchmark.
-A from-basics explanation of the single-cell matrix, graph, and prediction objects is in `THEORY.txt`.
+A from-basics explanation of the single-cell matrix, graph, and prediction objects is in `src/topocell/foundations.py`.

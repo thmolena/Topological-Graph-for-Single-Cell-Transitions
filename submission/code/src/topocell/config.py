@@ -1,4 +1,15 @@
-"""YAML experiment configuration."""
+"""YAML experiment configuration.
+
+The single knob set that defines a run. Each field maps to a parameter named in
+the paper's Methods (``Synthetic lineage``): ``n_cells``/``n_features`` size the
+cell-by-feature matrix; ``n_branches`` and ``noise`` shape the branching lineage
+(synthetic.py); ``rare_fraction`` sizes the rare state; ``k`` is the
+neighbourhood size of the kNN cell graph (graph.py); ``label_fraction`` is the
+few-label annotation budget and ``active_budget`` the active-sampling query
+budget (policy.py); ``splits`` selects the leakage-checked transfer protocols
+(splits.py); and ``n_seeds`` controls the seed aggregation behind every reported
+confidence interval. ``configs/full.yaml`` is the reported-scale configuration.
+"""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

@@ -47,7 +47,6 @@ sampling, and we identify validation on real single-cell RNA-sequencing (scRNA-s
 which the repository ships unexercised ingest stubs---as the essential next step.
 \end{abstract}
 
-\section{Introduction}
 Single-cell measurements resolve continuous trajectories of differentiation, activation and
 treatment response, and a recurring analysis goal is to \emph{forecast} the state a cell or
 population will occupy under conditions not directly observed: a donor not yet profiled, a
@@ -479,5 +478,312 @@ Current best practices in single-cell RNA-seq analysis: a tutorial.
 \emph{Molecular Systems Biology} \textbf{15}, e8746 (2019).
 
 \end{thebibliography}
+
+\clearpage
+\appendix
+\section*{Supplementary Information}
+\addcontentsline{toc}{section}{Supplementary Information}
+\renewcommand{\thesubsection}{S\arabic{subsection}}
+\setcounter{subsection}{0}
+
+\noindent\textit{A from-scratch derivation of every concept the accompanying code implements.}
+This appendix is written to be read top-to-bottom by someone who has seen linear
+algebra and basic probability but \emph{not} single-cell biology, graph-based
+semi-supervised learning, the graph Laplacian, label propagation, calibration or
+active learning. Every symbol used in the reference implementation
+(\texttt{topocell}) is defined, and each subsection names the source file it
+maps to, so theory and implementation can be read side by side. The Methods
+section above gives the condensed version; here we expand it pedagogically
+without restating the experimental protocol.
+
+\subsection{The problem in one paragraph}
+A single-cell experiment measures thousands of individual cells, each described
+by a vector of features (after dimensionality reduction, a low-dimensional
+embedding of its gene-expression profile). Cells do not fill this space
+uniformly: they lie near a low-dimensional curved surface (a ``manifold'') that
+traces differentiation, activation or treatment response. The task we study is
+\emph{forecasting}: predict the discrete state of a cell under a condition we did
+not directly observe---a donor not yet profiled, a later technical batch, a later
+point along the trajectory, or an untested perturbation. Two facts make this
+hard. (i) Only a handful of cells are ever annotated by hand; the rest are
+unlabelled. (ii) The biologically decisive states (transient progenitors,
+treatment-resistant clones) are often \emph{rare}, and ordinary classifiers
+trained to minimise average error ignore them. The scientific question of this
+paper, kept deliberately narrow and falsifiable: does conditioning a forecaster
+on the \emph{connectivity} of the cell $k$-nearest-neighbour ($k$NN) graph---rather
+than on point features alone---improve (a) generalisation to held-out groups and
+(b) recovery of a rare state? The answer is yes, but modestly on accuracy, more
+clearly on rare-state recall, and at a small calibration cost; all data are
+synthetic.
+
+\subsection{The data: a seeded synthetic branching lineage}
+\textit{Source: \texttt{src/topocell/synthetic.py}.}
+We do not ship or fabricate real biological data (see \texttt{ingest.py} for
+honest hooks into real AnnData). Instead we \emph{generate} a fully controlled
+lineage with the same structure the method must handle, so every claim is
+checkable bit-for-bit.
+
+A ``lineage'' is a tree of branches over a continuous coordinate $t\in[0,1]$
+called \emph{pseudotime} (how far a cell has progressed). The tree here has three
+branches (\texttt{\_TREE} in \texttt{synthetic.py}): branch $0$ is the
+trunk/common progenitor, living over $t\in[0,1]$; branch $1$ is the first fate,
+which splits off the trunk at $t_0=0.45$; and branch $2$ is the second fate,
+which also splits at $t_0=0.45$. Each branch has a fixed, well-separated
+\emph{anchor} point in feature space. A cell on branch $b$ at pseudotime $t$ has
+a mean feature vector $\mu(b,t)$ that drifts linearly from the split point toward
+that branch's anchor (function \texttt{\_branch\_mean}). The cell itself is
+\[
+    x = \mu(b,t) + \varepsilon,\qquad \varepsilon\sim\mathcal{N}(0,\texttt{noise}^2 I).
+\]
+The key geometry: early cells (small $t$) of different fates share the same trunk
+mean, so they \emph{overlap} and are hard to separate, whereas late cells are
+well resolved. This is exactly the regime in which letting a label diffuse along
+the manifold should beat a point classifier.
+
+Each cell also carries the metadata a real forecaster would use: \texttt{state}
+(the discrete label to predict, equal to the branch for the common branches);
+\texttt{donor} (a biological-replicate id); \texttt{batch} (a technical-replicate
+id); \texttt{perturbation} (a condition id, with $0$ the control, applying a small
+additive feature shift that never erases the lineage); and \texttt{pseudotime}
+(the continuous progression coordinate). Donor, batch and perturbation are drawn
+\emph{independently} of the biological branch, so the held-out splits of
+Section~\ref*{si:splits} are non-trivial (a donor spans multiple branches).
+
+\paragraph{The rare state.} A brand-new state label (id $=n_\text{branches}$) is
+carved out of the late tip ($t>0.8$) of the second fate: a random
+\texttt{rare\_fraction} of cells there are relabelled and additionally
+\emph{nudged} into their own pocket of feature space ($X[\text{chosen}]\mathrel{+}=
+[1.5,1.0,0,\dots]$). With $\texttt{rare\_fraction}=0.04$ this is $\sim$\SI{4}{\percent}
+of cells---the transient subpopulation an analyst most wants to find. Everything
+is seeded with NumPy's \texttt{default\_rng(seed)}, so the lineage is bit-for-bit
+reproducible across machines.
+
+\subsection{The graph object: the \texorpdfstring{$k$}{k}NN cell graph}
+\textit{Source: \texttt{src/topocell/graph.py}.}
+The bridge from ``points in feature space'' to ``topology'' is the
+$k$-nearest-neighbour graph, the same construction SCANPY uses before clustering
+or pseudotime \cite{wolf2018scanpy}. To build it (\texttt{build\_knn\_graph}): for
+each cell, find its $k$ nearest cells by Euclidean distance (self excluded),
+giving a \emph{directed} $k$NN (an edge $i\to j$ if $j$ is among $i$'s $k$
+neighbours); then \emph{symmetrise} with the either-direction convention
+$A\leftarrow\max(A,A^\top)$, so an undirected edge $\{i,j\}$ exists if $i$ picked
+$j$ \emph{or} $j$ picked $i$. Symmetrising is the standard single-cell convention
+and makes connected components well defined. The result is a symmetric adjacency
+matrix $A$ ($A=A^\top$, $A_{ii}=0$). $A$ is the graph, and it is the
+\emph{substrate} for everything that follows: labels diffuse over its edges, and
+rare cells are hunted in its sparse regions. The \emph{degree} of cell $i$ is
+$d_i=\sum_j A_{ij}$ (how many neighbours it has); collect the degrees on the
+diagonal of $D=\operatorname{diag}(d_1,\dots,d_n)$.
+
+\subsection{Topology: Betti-0 as a connectivity diagnostic}
+\textit{Source: \texttt{graph.py}.}
+The only topological invariant the method uses is Betti-0, the number of connected
+components of the graph, equal to the rank of the $0$-th homology group $H_0$
+(\texttt{n\_connected\_components} computes it with SciPy's
+\texttt{connected\_components}). Intuitively, a connected component is a maximal
+set of cells reachable from one another by walking along edges; the number of them
+counts how many disjoint pieces the data splits into. A real, testable property:
+as $k$ grows, edges are only \emph{added}, so components can only \emph{merge}---the
+component count is monotone non-increasing in $k$. \texttt{betti0\_curve} returns
+this count for $k\in\{2,4,8,16,32\}$, and \texttt{tests/test\_betti\_monotonic.py}
+asserts the monotonicity as a build sanity check. Honesty note: at the reported
+scale the graph is a single connected component for every $k$ in that set (the
+Betti-0 curve is constant at $1$), so Betti-0 here is a \emph{passive} sanity
+check, not an informative descriptor---which is precisely why the paper frames the
+method as graph-/manifold-structure-aware, not as deep topology (no persistent
+homology, no higher-order invariants). \texttt{topology\_features} and
+\texttt{local\_density} add cheap graph-level descriptors (mean degree, clustering,
+and a per-cell inverse-density proxy) used only by the active-sampling policy of
+Section~\ref*{si:active}.
+
+\subsection{The graph Laplacian and Dirichlet energy}
+\label{si:laplacian}
+This is the heart of the mathematics. Define the (combinatorial) graph Laplacian
+$L=D-A$. Its single most important property is that, for any vector $f$ on the
+cells,
+\[
+    f^\top L f = \tfrac12\sum_{i,j} A_{ij}\,(f_i-f_j)^2 \;\ge\; 0.
+\]
+This is the \emph{Dirichlet energy}: it is small exactly when $f$ varies smoothly
+across edges (neighbouring cells get similar values) and large when $f$ jumps
+across edges. $L$ is symmetric positive semidefinite; the all-ones vector lies in
+its null space (constant labels cost zero energy), and the multiplicity of the
+eigenvalue $0$ equals the number of connected components (tying back to Betti-0).
+``Smoothing labels over the graph'' will mean choosing $f$ that is smooth in this
+Dirichlet sense while still matching the few labels we have, made precise next.
+
+\subsection{Label propagation as a minimum-Dirichlet-energy label extension}
+\label{si:labelprop}
+\textit{Source: \texttt{src/topocell/policy.py}.}
+We observe one-hot labels $Y$ on a small labelled set (mask $M$ with $M_{ii}=1$ if
+cell $i$ is labelled, else $0$) and want a soft-label matrix $F$ (rows are cells,
+columns are classes). The variational objective---stated as
+Theorem~\ref{thm:label-prop} above---is
+\[
+    J(F)=\operatorname{Tr}(F^\top L F)+\mu\,\|M(F-Y)\|_F^2 .
+\]
+The first term is the Dirichlet energy of Section~\ref{si:laplacian} (smoothness
+on the graph); the second is a \emph{fidelity} penalty (stay near the observed
+labels on labelled cells), with $\mu>0$ the trade-off. $J$ is convex; setting the
+gradient to zero gives
+\[
+    2LF+2\mu M(F-Y)=0 \;\;\Longrightarrow\;\; (L+\mu M)F=\mu M Y .
+\]
+On any connected component containing at least one labelled cell, $L+\mu M$ is
+positive definite, so the minimiser is \emph{unique}: label propagation is the
+unique minimum-Dirichlet-energy extension of the observed labels. The same theorem
+states the limitation---a component with no labels is not identified by smoothing
+alone---which is exactly the failure mode that active sampling
+(Section~\ref{si:active}) attacks.
+
+\paragraph{The actual iteration.} The implementation runs the normalised form of
+Zhou et al.\ \cite{zhou2004local}. Symmetrically normalise the adjacency,
+$S=D^{-1/2}AD^{-1/2}$ (eigenvalues in $[-1,1]$); seed $F_0$ as one-hot labels on
+labelled cells and zero elsewhere; and iterate
+\[
+    F \;\leftarrow\; \alpha\,(S F) + (1-\alpha)\,F_0 .
+\]
+This is a damped power iteration whose fixed point
+$F^\star=(1-\alpha)(I-\alpha S)^{-1}F_0$ is the closed-form solution of a
+normalised version of $J(F)$, with $\alpha$ the diffusion/clamping trade-off. The
+code uses $\alpha=0.9$ and $30$ power iterations (deterministic, CPU, no learning).
+Held-out cells are predicted by the argmax of their row-normalised diffused
+scores; the maximum class probability is the \emph{confidence} used for
+calibration (Section~\ref{si:metrics}). This fixed-point solver is a faithful
+surrogate for a message-passing GNN: dropping in a learned propagator
+\cite{kipf2017gcn} leaves the rest of the pipeline unchanged.
+
+\paragraph{The honest baseline.} The \texttt{KNNForecaster} is a plain
+$k$-nearest-neighbour classifier in feature space, fitted on the \emph{same}
+labelled cells with the \emph{same} $k$, but with \emph{no} diffusion. It sees
+identical neighbourhood information; the only difference is that it does not let
+labels spread along the graph. Comparing \texttt{LabelPropagation} to this
+baseline isolates the value of graph diffusion, not the mere availability of
+neighbours---the apples-to-apples control that is the methodological spine of the
+paper.
+
+\subsection{Splits, leakage and the few-label regime}
+\label{si:splits}
+\textit{Source: \texttt{src/topocell/splits.py}.}
+A forecaster that only works when train and test share donors, batches, conditions
+or timepoints is a \emph{memoriser}, not a forecaster. So we evaluate transfer
+across nuisance variables under four protocols (\texttt{SPLIT\_TYPES}):
+\texttt{donor} (hold out whole donors---biological-replicate transfer);
+\texttt{batch} (hold out whole batches---technical-replicate transfer);
+\texttt{time} (train on early pseudotime $t<\text{cutoff}$, test on late---a genuine
+forward-in-time extrapolation); and \texttt{perturbation} (hold out a whole
+condition---forecast an unseen perturbation). For grouping splits,
+\texttt{has\_leakage()} checks that the held-out group's id appears in test but not
+in train (disjoint group sets), and the test suite asserts this strict
+family-held-out no-leakage property. The time split cuts on a continuous
+coordinate, so there is no grouping variable to leak (clean by construction).
+
+\paragraph{Few-label annotation.} Only a fraction \texttt{label\_fraction} of the
+train pool is actually annotated (\texttt{\_annotate}), mirroring how analysts
+label a handful of cells and propagate the rest. The selection is lightly
+\emph{stratified}: a couple of labels are guaranteed for each present state,
+including the rare one---with zero rare labels no method could recall the rare
+state and the comparison would be uninformative rather than honest. The held-out
+test cells are never annotated.
+
+\subsection{Active sampling: hunting the rare state}
+\label{si:active}
+\textit{Sources: \texttt{policy.py}, \texttt{graph.py}.}
+Active learning chooses \emph{which} cells to annotate next, given a fixed
+labelling budget. The topology-aware policy (\texttt{active\_sample},
+\texttt{strategy='topology'}) scores each unlabelled cell by
+\[
+    \text{score} = \operatorname{zscore}(\text{uncertainty}) + \operatorname{zscore}(\text{inverse local density}),
+\]
+and greedily takes the top \texttt{budget} cells. The two ingredients are: (i)
+\emph{uncertainty}, the Shannon entropy $H(p)=-\sum_c p_c\log p_c$ of a
+label-propagation forecast from the \emph{current} labels (\texttt{\_entropy}),
+where high entropy means the model is unsure---near a decision boundary, the
+classic active-learning signal; and (ii) \emph{inverse local density}, the
+reciprocal of a cell's mean $k$NN distance (\texttt{graph.local\_density}), since
+rare states sit in low-density pockets, making $1/\text{density}$ a cheap,
+topology-aware ``where are the rare cells'' signal. Standardising each to a
+z-score (subtract mean, divide by standard deviation) puts the two heterogeneous
+signals on a common scale before adding them. The baseline is uniform
+\emph{random} querying (\texttt{strategy='random'}). \texttt{recall\_after\_query}
+measures rare-state recall on the still-unlabelled cells before versus after adding
+the queried set; the gap is the active-sampling \emph{lift}. We also report the
+fraction of queried cells that were genuinely rare (\texttt{rare\_query\_rate}).
+
+\subsection{Metrics and aggregation}
+\label{si:metrics}
+\textit{Source: \texttt{src/topocell/metrics.py}.}
+\emph{Accuracy} is the fraction of held-out cells classified correctly.
+\emph{Expected calibration error} (ECE) asks whether the confidences are
+trustworthy: bin the test cells by predicted confidence into ten bins, in each bin
+compare mean confidence to empirical accuracy, and take the population-weighted
+average gap; a perfectly calibrated forecaster has $\text{ECE}\to0$. We report ECE
+precisely because graph smoothing sharpens probabilities and, in this setting,
+makes them mildly overconfident---a small, honestly disclosed cost that
+recalibration in the manner of Guo et al.\ \cite{guo2017calibration} would remove.
+\emph{Rare-state recall} is the fraction of true rare cells the model labels rare;
+by convention it returns $1$ when a test set has no rare cells (nothing to miss),
+so a split is never spuriously penalised. \emph{Aggregation} (\texttt{summarize}):
+every metric is computed per seed and reported as mean, sample standard deviation
+$s$ (with $\text{ddof}=1$) and a $95\%$ confidence interval $1.96\,s/\sqrt{n}$ over
+the $n=5$ seeds. These \texttt{ci95} values are exactly the error bars in the
+figures and the $\pm$ in the text.
+
+\subsection{Reproducibility object: one source of truth}
+\label{si:repro}
+\textit{Sources: \texttt{runner.py}, \texttt{scripts/}.}
+\texttt{runner.py} ties everything together: generate the lineage, build the
+graph, check integrity (leakage-clean splits, rare state present, Betti-0
+monotone), run both forecasters under all four splits over five seeds, run the
+active-sampling comparison, and write \texttt{results/summary.json}---the single
+source of truth. Nothing in the paper is typed by hand:
+\[
+    \texttt{summary.json}\;\xrightarrow{\;\texttt{make\_tables.py}\;}\;\texttt{results/main\_results.tex},
+\]
+\[
+    \texttt{summary.json}\;\xrightarrow{\;\texttt{make\_figures.py}\;}\;\texttt{figures/fig\_\{schematic,lineage,forecast\}.pdf}.
+\]
+\texttt{scripts/audit\_claims.py} is a readiness gate: it checks that every
+headline number is present and traceable, that the integrity flags are true, and
+(against the repository README) that the mandated reproducibility phrase is present
+with no forbidden superiority claims; it exits non-zero if any check fails. Figures
+are drawn by \texttt{src/topocell/plotting.py} in \emph{Nature Machine Intelligence}
+house style (vector PDF with embedded fonts, sans-serif, colour-blind-safe
+Okabe--Ito categories with viridis for the continuous embedding axis, bold
+lower-case panel labels, $95\%$ CI error bars, no in-plot titles);
+\texttt{fig\_schematic} is the method-overview Figure~\ref{fig:schematic}.
+
+To reproduce everything from the \texttt{code/} folder:
+\begin{verbatim}
+export KMP_DUPLICATE_LIB_OK=TRUE
+pip install -e .                  # or: pip install -e .[gpu]
+bash scripts/reproduce_all.sh full   # writes summary.json, tables, figures
+\end{verbatim}
+The reported run uses \num{3000} cells, \num{16} features, \num{8} donors,
+\num{4} batches, \num{5} perturbations, \num{3} branches, $\sim$\SI{4}{\percent}
+rare state, $k=20$, $\texttt{label\_fraction}=0.03$, $\texttt{active\_budget}=60$,
+and \num{5} seeds with master seed $0$; the provenance block records a runtime of
+\SI{20.8}{\second} and peak memory of \SI{320.6}{\mega\byte} on a laptop CPU. The
+figure and table artifacts are copied verbatim into the \texttt{submission/} folder
+used to build this manuscript.
+
+\subsection{What the result means (and what it does not)}
+Within this controlled synthetic benchmark, conditioning forecasts on $k$NN-graph
+connectivity helps: label propagation beats the matched point classifier on
+held-out accuracy on all four splits (mean gain $\approx\num{0.0595}$, roughly four
+to nine percentage points) and---the clearer effect---recovers a rare state the
+baseline almost never finds. The topology-aware active-sampling policy raises
+rare-state recall from \num{0.0247} (random) to \num{0.3556}. These gains carry a
+small, consistent calibration penalty (ECE is slightly worse on every split). The
+accuracy gain is real but modest; the headline contribution is rare-state recovery,
+and even that is null on the time split (forward-in-time extrapolation puts the
+rare late-tip cells entirely outside the training distribution---reported as-is).
+The critical caveats, expanded in the Limitations above, are that all data are
+synthetic (no biological discovery claim); that the ``topology'' is shallow
+($k$NN-graph connectivity and a Betti-0 component count that is constant at this
+scale, not persistent homology); that rare-metric confidence intervals are wide
+because rare cells are few; and that a single synthetic generator cannot substitute
+for real datasets. The decisive next step is to repeat this exact comparison on
+real scRNA-seq and perturbation-screen data via the unexercised ingest stubs.
 
 \end{document}

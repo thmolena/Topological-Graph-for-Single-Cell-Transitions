@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Generate LaTeX/Markdown tables from results/summary.json.
+"""Generate LaTeX tables from results/summary.json.
 
 The main table is per-split: forecast accuracy, ECE and rare-state recall for
 the graph-smoothed method vs the non-graph baseline.
@@ -34,15 +34,8 @@ def main() -> None:
     lines += [r"\bottomrule", r"\end{tabular}"]
     (tables / "main_results.tex").write_text("\n".join(lines) + "\n")
 
-    # Markdown (for the README)
-    md = ["| split | method | accuracy | ECE | rare-state recall |",
-          "|---|---|---|---|---|"]
-    for split, method, acc, ece, rr in rows:
-        bold = "**" if method == "graph-smoothed" else ""
-        md.append(f"| {split} | {bold}{method}{bold} | {bold}{acc:.4f}{bold} | {ece:.4f} | {bold}{rr:.4f}{bold} |")
-    (tables / "main_results.md").write_text("\n".join(md) + "\n")
-    print("wrote results/main_results.tex, results/main_results.md")
-    print("\n".join(md))
+    print("wrote results/main_results.tex")
+    print("\n".join(lines))
 
 
 if __name__ == "__main__":

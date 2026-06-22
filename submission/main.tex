@@ -83,8 +83,31 @@ does and does not support.
 
 \section{Results}
 
+\begin{figure}[t]
+\centering
+\includegraphics[width=\linewidth]{fig_schematic.pdf}
+\caption{\textbf{Overview of the graph-structure-aware single-cell forecasting
+benchmark.} A seeded synthetic branching lineage of single cells---each carrying
+branch/state, donor, batch, perturbation and pseudotime metadata, with a
+deliberately rare state ($\sim$\SI{4}{\percent} of cells)---is embedded in a
+low-dimensional feature space. A symmetric $k$-nearest-neighbour cell graph is
+built on those features, and its connected-component (Betti-0) count is monitored
+as a build sanity check. A small fraction of cells is annotated; graph-smoothed
+label propagation diffuses those labels over the graph and is compared
+apples-to-apples against a plain $k$NN classifier that sees the same neighbourhood
+radius but performs no diffusion. Performance is read out as held-out forecast
+accuracy, expected calibration error and rare-state recall under four
+leakage-checked transfer protocols (donor, batch, time and perturbation), and a
+topology-aware active-sampling policy (uncertainty $\times$ inverse local density)
+is compared against uniform random querying for rare-state recovery. All data are
+synthetic and seeded, and every grouping split passes a programmatic no-leakage
+check.}
+\label{fig:schematic}
+\end{figure}
+
 \subsection{A controlled synthetic lineage with replicate, condition and pseudotime structure}
-The benchmark is a seeded synthetic branching lineage (Fig.~\ref{fig:lineage}). Cells live in a
+The end-to-end pipeline is summarized in Fig.~\ref{fig:schematic}. The benchmark is a seeded
+synthetic branching lineage (Fig.~\ref{fig:lineage}). Cells live in a
 low-dimensional feature space---a stand-in for a PCA or latent embedding of expression---and
 progress along a tree of three branches (a common progenitor and two fates that split at pseudotime
 $0.45$) as Gaussian blobs whose mean drifts along each branch. Early cells therefore overlap and
@@ -155,30 +178,21 @@ expected calibration error (ECE) and rare-state recall for graph-smoothed label 
 plain $k$NN baseline. Higher accuracy and recall are better; \emph{lower} ECE is better. Values are
 transcribed exactly from \texttt{results/main\_results.tex}.}
 \label{tab:main}
-\begin{tabular}{llccc}
-\toprule
-split & method & accuracy & ECE & rare-state recall \\
-\midrule
-donor & graph-smoothed & 0.7004 & 0.1247 & 0.1520 \\
-donor & baseline kNN & 0.6550 & 0.1073 & 0.0000 \\
-batch & graph-smoothed & 0.6995 & 0.1383 & 0.4618 \\
-batch & baseline kNN & 0.6355 & 0.0905 & 0.0320 \\
-time & graph-smoothed & 0.5474 & 0.1328 & 0.0000 \\
-time & baseline kNN & 0.4574 & 0.0970 & 0.0000 \\
-perturbation & graph-smoothed & 0.6875 & 0.1649 & 0.3393 \\
-perturbation & baseline kNN & 0.6490 & 0.1184 & 0.0286 \\
-\bottomrule
-\end{tabular}
+\input{tables/main_results.tex}
 \end{table}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.74\linewidth]{fig_lineage.pdf}
-\caption{\textbf{The synthetic branching lineage.} Cells are plotted in the first two feature
-dimensions of the embedding plane and coloured by branch (the trunk progenitor and two fates). The
-deliberately rare state, carved from the late tip of one fate and nudged into its own pocket of
-feature space, is highlighted as stars and comprises $\sim$\SI{4}{\percent} of cells. The figure is
-regenerated deterministically from the run configuration in \texttt{summary.json}.}
+\caption{\textbf{The synthetic branching lineage.} Each point is one of the
+$n=\num{3000}$ cells of the full-scale configuration, plotted in the first two
+feature dimensions of the embedding plane. Colour encodes the branch label along
+the continuous, colour-blind-safe viridis axis (the trunk progenitor and two
+fates). The deliberately rare state, carved from the late tip of one fate and
+nudged into its own pocket of feature space, is highlighted as stars and comprises
+$\sim$\SI{4}{\percent} of cells. This is a single-seed data-distribution plot (no
+aggregation over seeds); the figure is regenerated deterministically from the run
+configuration in \texttt{summary.json}.}
 \label{fig:lineage}
 \end{figure}
 
@@ -186,15 +200,16 @@ regenerated deterministically from the run configuration in \texttt{summary.json
 \centering
 \includegraphics[width=\linewidth]{fig_forecast.pdf}
 \caption{\textbf{Forecasting and active-sampling results.}
-\textbf{(a)} Held-out forecast accuracy by split protocol: graph-smoothed label propagation (blue)
+\textbf{a}, Held-out forecast accuracy by split protocol: graph-smoothed label propagation (blue)
 versus the plain $k$NN baseline (grey). Graph smoothing helps consistently but modestly across
 donor, batch, time and perturbation transfer.
-\textbf{(b)} Rare-state recall by split: the baseline almost never recovers the rare state, whereas
+\textbf{b}, Rare-state recall by split: the baseline almost never recovers the rare state, whereas
 graph diffusion recovers it on the donor, batch and perturbation splits; both methods score zero on
 the time split, which extrapolates beyond the training distribution.
-\textbf{(c)} Active-sampling lift: rare-state recall after spending a fixed query budget under the
-topology-aware policy (uncertainty $\times$ inverse local density) versus uniform random querying;
-error bars are 95\% confidence intervals over \num{5} seeds. All panels are drawn directly from
+\textbf{c}, Active-sampling lift: rare-state recall after spending a fixed query budget under the
+topology-aware policy (uncertainty $\times$ inverse local density) versus uniform random querying.
+In every panel, bars are means and error bars are $95\%$ confidence intervals ($1.96\,s/\sqrt{n}$)
+over $n=\num{5}$ random seeds. All panels are drawn directly from
 \texttt{results/summary.json}.}
 \label{fig:forecast}
 \end{figure}

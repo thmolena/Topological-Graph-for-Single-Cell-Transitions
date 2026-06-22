@@ -18,7 +18,7 @@ pip install -r requirements.txt && pip install -e .
 ```bash
 make test        # synthetic structure · no-leakage splits · Betti-0 monotonicity · metric bounds
 make demo        # smoke config (~1-4 s) -> results/summary.json
-make tables      # results/main_results.{tex,md}
+make tables      # results/main_results.tex
 make figures     # figures/fig_lineage.pdf, figures/fig_forecast.pdf
 make audit       # readiness gate
 make full-run    # reported-scale config (a minute or two)
@@ -59,3 +59,4 @@ and the rare-state-recall gain from active sampling. Integrity flags
 of truth for every table, figure and macro.
 
 All experiments are reproducible on commodity hardware; runtime and memory are reported for each benchmark.
+A from-basics explanation of the single-cell matrix, graph, and prediction objects is in `THEORY.txt`.

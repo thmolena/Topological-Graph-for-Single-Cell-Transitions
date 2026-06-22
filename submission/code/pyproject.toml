@@ -19,6 +19,9 @@ dependencies = [
 gpu = ["torch>=2.0"]
 dev = ["pytest>=7.0"]
 
+[project.scripts]
+topocell-reproduce = "topocell.reproduce:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

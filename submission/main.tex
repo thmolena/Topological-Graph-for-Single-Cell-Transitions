@@ -12,6 +12,8 @@
 \titleformat{\section}{\sffamily\large\bfseries\color{nmiaccent}}{\thesection}{0.6em}{}
 \titleformat{\subsection}{\sffamily\normalsize\bfseries}{\thesubsection}{0.6em}{}
 \pagestyle{fancy}\fancyhf{}\fancyhead[L]{\footnotesize\itshape Graph-structure-aware learning of single-cell transitions}\fancyhead[R]{\footnotesize\thepage}\renewcommand{\headrulewidth}{0.4pt}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}[theorem]{Proposition}
 \title{\bfseries\LARGE Graph-structure-aware label propagation and active sampling for few-label single-cell state forecasting and rare-state recovery}
 \author[ ]{Molena Huynh}\affil[ ]{[Affiliation to be completed before submission] \quad\textperiodcentered\quad Correspondence: \texttt{[corresponding-author email]}}
 \date{}
@@ -196,6 +198,41 @@ error bars are 95\% confidence intervals over \num{5} seeds. All panels are draw
 \texttt{results/summary.json}.}
 \label{fig:forecast}
 \end{figure}
+
+\subsection{Theory: graph smoothing as a variational estimator}
+The graph-smoothed forecaster used in Fig.~\ref{fig:forecast} is label
+propagation on the cell $k$NN graph. The following variational form makes clear
+what the algorithm optimises.
+
+\begin{theorem}[Unique graph-regularised extension of labels]
+\label{thm:label-prop}
+Let $W=W^\top\ge0$ be the $k$NN affinity matrix, $L=D-W$ the graph Laplacian,
+$Y$ the one-hot label matrix on labelled cells and $M$ a diagonal mask with
+$M_{ii}=1$ for labelled cells and $0$ otherwise. For any $\mu>0$, the objective
+\[
+    J(F)=\operatorname{Tr}(F^\top L F)+\mu\|M(F-Y)\|_F^2
+\]
+has a unique minimiser on each connected component containing at least one
+labelled cell, and that minimiser satisfies the linear system
+$(L+\mu M)F=\mu MY$. Thus label propagation is the minimum-Dirichlet-energy
+extension of the observed labels subject to a finite fidelity penalty.
+\end{theorem}
+
+\begin{proof}
+The Laplacian term is convex and equals
+$\frac12\sum_{ij}W_{ij}\|F_i-F_j\|_2^2$, penalising changes across graph edges.
+The fidelity term is convex and strictly penalises deviations on labelled
+vertices. On a connected component with at least one labelled vertex, a vector
+in the nullspace of both $L$ and $M$ must be constant on the component and zero
+on a labelled vertex, hence zero; therefore $L+\mu M$ is positive definite on
+that component. Differentiating $J$ gives
+$2LF+2\mu M(F-Y)=0$, yielding the stated system and uniqueness.
+\end{proof}
+
+The theorem also states the limitation: if a component has no labels, the labels
+there are not statistically identified by graph smoothing alone. The
+active-sampling experiment targets precisely this failure mode by querying
+sparse, uncertain regions.
 
 \section{Discussion}
 Within a controlled synthetic benchmark, conditioning single-cell forecasts on the connectivity of

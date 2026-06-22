@@ -1,0 +1,274 @@
+{
+  "config": {
+    "name": "full",
+    "seed": 0,
+    "n_cells": 3000,
+    "n_features": 16,
+    "n_branches": 3,
+    "n_donors": 8,
+    "n_batches": 4,
+    "n_perturbations": 5,
+    "noise": 0.7,
+    "rare_fraction": 0.04,
+    "k": 20,
+    "label_fraction": 0.03,
+    "splits": [
+      "donor",
+      "batch",
+      "time",
+      "perturbation"
+    ],
+    "active_budget": 60,
+    "n_seeds": 5
+  },
+  "provenance": {
+    "seed": 0,
+    "command": "scripts/run.py --config configs/full.yaml --out results",
+    "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+    "versions": {
+      "python": "3.13.12",
+      "numpy": "2.4.3",
+      "scipy": "1.17.1",
+      "networkx": "3.6.1",
+      "sklearn": "1.8.0",
+      "matplotlib": "3.10.8"
+    },
+    "timestamp_utc": "2026-06-21T19:54:43Z",
+    "runtime_sec": 20.802,
+    "peak_memory_mb": 320.64
+  },
+  "integrity": {
+    "donor_split_clean": true,
+    "betti_monotonic": true,
+    "rare_state_present": true
+  },
+  "by_split": {
+    "donor": {
+      "graph_smoothed": {
+        "accuracy": {
+          "mean": 0.700442,
+          "std": 0.010653,
+          "ci95": 0.009337,
+          "n": 5
+        },
+        "ece": {
+          "mean": 0.124699,
+          "std": 0.048435,
+          "ci95": 0.042455,
+          "n": 5
+        },
+        "rare_recall": {
+          "mean": 0.15205,
+          "std": 0.066903,
+          "ci95": 0.058643,
+          "n": 5
+        }
+      },
+      "baseline_knn": {
+        "accuracy": {
+          "mean": 0.655006,
+          "std": 0.056063,
+          "ci95": 0.049141,
+          "n": 5
+        },
+        "ece": {
+          "mean": 0.107287,
+          "std": 0.037634,
+          "ci95": 0.032988,
+          "n": 5
+        },
+        "rare_recall": {
+          "mean": 0.0,
+          "std": 0.0,
+          "ci95": 0.0,
+          "n": 5
+        }
+      }
+    },
+    "batch": {
+      "graph_smoothed": {
+        "accuracy": {
+          "mean": 0.69945,
+          "std": 0.009705,
+          "ci95": 0.008506,
+          "n": 5
+        },
+        "ece": {
+          "mean": 0.138276,
+          "std": 0.02499,
+          "ci95": 0.021905,
+          "n": 5
+        },
+        "rare_recall": {
+          "mean": 0.461833,
+          "std": 0.356496,
+          "ci95": 0.312482,
+          "n": 5
+        }
+      },
+      "baseline_knn": {
+        "accuracy": {
+          "mean": 0.635514,
+          "std": 0.04136,
+          "ci95": 0.036253,
+          "n": 5
+        },
+        "ece": {
+          "mean": 0.090545,
+          "std": 0.038676,
+          "ci95": 0.033901,
+          "n": 5
+        },
+        "rare_recall": {
+          "mean": 0.032,
+          "std": 0.071554,
+          "ci95": 0.06272,
+          "n": 5
+        }
+      }
+    },
+    "time": {
+      "graph_smoothed": {
+        "accuracy": {
+          "mean": 0.547372,
+          "std": 0.124624,
+          "ci95": 0.109238,
+          "n": 5
+        },
+        "ece": {
+          "mean": 0.132784,
+          "std": 0.039359,
+          "ci95": 0.034499,
+          "n": 5
+        },
+        "rare_recall": {
+          "mean": 0.0,
+          "std": 0.0,
+          "ci95": 0.0,
+          "n": 5
+        }
+      },
+      "baseline_knn": {
+        "accuracy": {
+          "mean": 0.457408,
+          "std": 0.094105,
+          "ci95": 0.082486,
+          "n": 5
+        },
+        "ece": {
+          "mean": 0.096989,
+          "std": 0.059776,
+          "ci95": 0.052396,
+          "n": 5
+        },
+        "rare_recall": {
+          "mean": 0.0,
+          "std": 0.0,
+          "ci95": 0.0,
+          "n": 5
+        }
+      }
+    },
+    "perturbation": {
+      "graph_smoothed": {
+        "accuracy": {
+          "mean": 0.687455,
+          "std": 0.036889,
+          "ci95": 0.032335,
+          "n": 5
+        },
+        "ece": {
+          "mean": 0.164925,
+          "std": 0.043868,
+          "ci95": 0.038452,
+          "n": 5
+        },
+        "rare_recall": {
+          "mean": 0.339253,
+          "std": 0.38315,
+          "ci95": 0.335846,
+          "n": 5
+        }
+      },
+      "baseline_knn": {
+        "accuracy": {
+          "mean": 0.64896,
+          "std": 0.025198,
+          "ci95": 0.022087,
+          "n": 5
+        },
+        "ece": {
+          "mean": 0.118425,
+          "std": 0.042861,
+          "ci95": 0.037569,
+          "n": 5
+        },
+        "rare_recall": {
+          "mean": 0.028571,
+          "std": 0.063888,
+          "ci95": 0.056,
+          "n": 5
+        }
+      }
+    }
+  },
+  "active_sampling": {
+    "topology": {
+      "rare_recall": {
+        "mean": 0.355579,
+        "std": 0.182219,
+        "ci95": 0.159722,
+        "n": 5
+      },
+      "rare_query_rate": {
+        "mean": 0.366667,
+        "std": 0.079057,
+        "ci95": 0.069296,
+        "n": 5
+      }
+    },
+    "random": {
+      "rare_recall": {
+        "mean": 0.024673,
+        "std": 0.032482,
+        "ci95": 0.028472,
+        "n": 5
+      },
+      "rare_query_rate": {
+        "mean": 0.03,
+        "std": 0.018257,
+        "ci95": 0.016003,
+        "n": 5
+      }
+    }
+  },
+  "betti": {
+    "ks": [
+      2,
+      4,
+      8,
+      16,
+      32
+    ],
+    "components": [
+      1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "headline": {
+    "graph_smoothed_accuracy": 0.65868,
+    "baseline_accuracy": 0.599222,
+    "accuracy_gain_vs_baseline": 0.059458,
+    "graph_smoothed_rare_recall": 0.238284,
+    "baseline_rare_recall": 0.015143,
+    "active_rare_recall": 0.355579,
+    "random_rare_recall": 0.024673,
+    "active_rare_recall_gain": 0.330906,
+    "n_cells": 3000,
+    "n_states": 4,
+    "rare_state_fraction": 0.04
+  }
+}

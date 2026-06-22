@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Topological Graph RL for Single-Cell Transitions</title>
-<meta name="description" content="Forecast single-cell state transitions by label propagation on a kNN cell graph, with topology-aware active sampling for rare states. Live in-browser demo that runs locally.">
+<meta name="description" content="Forecasting single-cell state transitions via label propagation on a kNN cell graph, with topology-aware active sampling for rare states. An interactive in-browser demonstration that executes locally.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body)"></script>
@@ -95,18 +95,18 @@
 
 <header class="hero">
   <div class="wrap">
-    <span class="tag">topological graph learning · active sampling of single-cell transitions · calibrated &amp; audited reproducibility</span>
+    <span class="tag">graph-structure-aware learning · active sampling of single-cell transitions · calibrated and audited reproducibility</span>
     <h1>Topological Graph RL for Single-Cell Transitions</h1>
-    <p class="sub">Forecast a cell's <b>next state</b> by propagating a handful of labels over the
-      <b>kNN cell graph</b>, and use a <b>topology-aware active-sampling</b> policy to recover a
+    <p class="sub">We forecast a cell's <b>subsequent state</b> by propagating a small set of labels over the
+      <b>kNN cell graph</b>, and we employ a <b>topology-aware active-sampling</b> policy to recover a
       <b>rare</b> state — held out by donor, batch, pseudotime, and perturbation condition.</p>
     <div class="chips">
-      <div class="chip"><b id="c1">+0.29</b><span>accuracy vs non-graph baseline (demo)</span></div>
-      <div class="chip"><b id="c2">0.83</b><span>rare-state recall via active sampling (demo)</span></div>
-      <div class="chip"><b id="c3">4</b><span>leakage-checked split protocols</span></div>
+      <div class="chip"><b id="c1">+0.0595</b><span>mean accuracy gain over the point-classifier baseline</span></div>
+      <div class="chip"><b id="c2">0.3556</b><span>rare-state recall under topology-aware active sampling</span></div>
+      <div class="chip"><b id="c3">4</b><span>leakage-controlled split protocols</span></div>
     </div>
     <div class="cta">
-      <a class="btn primary" href="#demo">▶ Run the live demo</a>
+      <a class="btn primary" href="#demo">▶ Run the interactive demonstration</a>
       <a class="btn" href="#code">Paper &amp; code</a>
     </div>
   </div>
@@ -114,52 +114,53 @@
 
 <section id="overview"><div class="wrap">
   <h2>The problem</h2>
-  <p class="lead">A single-cell dataset is a cloud of cells in an expression embedding. The biology
-    we care about — differentiation, a treatment response, a transient progenitor — is a
-    <b>transition</b> between cell states along the data manifold. Annotating every cell is
-    impossible, and the <b>rare</b> states (a few percent of cells) are exactly the ones that
-    matter and the ones a point classifier misses. We turn the cells into a <b>graph</b> and let
-    labels flow along it.</p>
+  <p class="lead">A single-cell dataset constitutes a population of cells distributed within an expression
+    embedding. The biological phenomena of primary interest — differentiation, treatment response, transient
+    progenitor states — manifest as <b>transitions</b> between cell states along the data manifold. Exhaustive
+    annotation of every cell is infeasible, and the <b>rare</b> states (a few percent of cells) are precisely those
+    of greatest consequence and those that a point classifier systematically fails to recover. We accordingly
+    represent the cells as a <b>graph</b> and allow labels to propagate along its edges.</p>
   <div class="grid3">
-    <div class="card"><h3>Why the graph</h3><p>With few annotated cells, a plain kNN classifier has sparse, unreliable neighbourhoods. Diffusing labels through unlabeled cells on the kNN graph borrows strength across the manifold.</p></div>
-    <div class="card"><h3>Why topology</h3><p>The number of connected components of the kNN graph (Betti-0) drops monotonically as <i>k</i> grows — a real invariant that signals how many states a population truly holds, and where the sparse rare pockets are.</p></div>
-    <div class="card"><h3>Why the splits</h3><p>A forecaster must transfer across <b>donors</b>, <b>batches</b>, <b>time</b> and <b>perturbations</b>. Each split holds one out and asserts zero leakage — the analogue of held-out-by-family transfer.</p></div>
+    <div class="card"><h3>Rationale for the graph</h3><p>When few cells are annotated, a plain kNN classifier operates over sparse, unreliable neighbourhoods. Diffusing labels through unlabeled cells on the kNN graph borrows statistical strength across the manifold.</p></div>
+    <div class="card"><h3>Rationale for topology</h3><p>The number of connected components of the kNN graph (Betti-0) decreases monotonically as <i>k</i> increases — a graph invariant that indicates how many states a population resolves and where the sparse rare pockets reside.</p></div>
+    <div class="card"><h3>Rationale for the splits</h3><p>A forecaster must transfer across <b>donors</b>, <b>batches</b>, <b>time</b>, and <b>perturbations</b>. Each split holds one such group out and verifies the absence of leakage — the analogue of family-held-out transfer.</p></div>
   </div>
 </div></section>
 
 <section id="tutorial"><div class="wrap">
-  <h2>Tutorial and primer for research scientists</h2>
-  <p class="lead">Single-cell measurements can be viewed as points on a biological manifold: similar cells are
-    neighbors, rare states are sparse regions, and transitions follow graph structure over pseudotime. This project
-    uses the kNN graph as the computational object, then forecasts unlabeled cell states by diffusing a small set of
-    labels through that graph.</p>
+  <h2>Tutorial and primer</h2>
+  <p class="lead">Single-cell measurements may be regarded as points on a biological manifold: similar cells are
+    neighbours, rare states occupy sparse regions, and transitions follow the graph structure along pseudotime. This
+    work adopts the kNN graph as its central computational object and forecasts unlabeled cell states by diffusing a
+    small set of labels through that graph.</p>
   <div class="grid3">
-    <div class="card"><h3>Input</h3><p>A seeded branching lineage with cell embeddings, pseudotime, donor, batch, perturbation labels, and a deliberately rare late-branch state.</p></div>
-    <div class="card"><h3>Core idea</h3><p>Construct a symmetric kNN graph, track Betti-0 connected components as \(k\) changes, and use graph-smoothed label propagation in the scarce-label regime.</p></div>
-    <div class="card"><h3>Output</h3><p>Next-state forecasts plus a topology-aware active-sampling policy that chooses which unlabeled cells to annotate to recover the rare state.</p></div>
+    <div class="card"><h3>Input</h3><p>A seeded branching lineage comprising cell embeddings, pseudotime, donor, batch, and perturbation annotations, together with a deliberately rare late-branch state.</p></div>
+    <div class="card"><h3>Central idea</h3><p>Construct a symmetric kNN graph, track the Betti-0 connected-component count as \(k\) varies, and apply graph-smoothed label propagation in the scarce-label regime.</p></div>
+    <div class="card"><h3>Output</h3><p>Subsequent-state forecasts together with a topology-aware active-sampling policy that selects which unlabeled cells to annotate in order to recover the rare state.</p></div>
   </div>
   <div class="grid2" style="margin-top:16px">
-    <div class="card"><h3>Statistical design</h3><p>The benchmark holds out donor, batch, time, and perturbation splits; reports accuracy, ECE, rare-state recall; and checks leakage plus monotone Betti-0 behavior.</p></div>
-    <div class="card"><h3>Novelty signal</h3><p>Graph smoothing raises smoke-scale mean accuracy from 0.4042 to 0.6950, while topology-aware active sampling reaches 0.833 rare-state recall versus 0.000 for random querying.</p></div>
+    <div class="card"><h3>Statistical design</h3><p>The benchmark holds out donor, batch, time, and perturbation splits; reports accuracy, ECE, and rare-state recall; and verifies the absence of leakage alongside monotone Betti-0 behaviour.</p></div>
+    <div class="card"><h3>Indication of contribution</h3><p>Graph smoothing raises the mean held-out accuracy from 0.5992 to 0.6587, while topology-aware active sampling attains 0.3556 rare-state recall, in contrast to 0.0247 under uniform random querying.</p></div>
   </div>
 </div></section>
 
 <section id="method"><div class="wrap">
   <h2>Method</h2>
-  <p class="lead">Two graph-smoothed forecasters feed one audited scoreboard; an active-sampling
-    policy decides which unlabeled cells to annotate next to recover the rare state.</p>
+  <p class="lead">A graph-smoothed forecaster and a matched point-classifier baseline feed a single audited
+    evaluation; an active-sampling policy then determines which unlabeled cells to annotate next in order to recover
+    the rare state.</p>
   <div class="pipe">
-    <div class="step"><b>1 · Cell graph</b><br>kNN over the expression embedding; Betti-0 (components) vs <i>k</i> as a topology feature</div>
-    <div class="step"><b>2 · Forecast</b><br>label propagation \(F \leftarrow \alpha S F + (1-\alpha)F_0\) vs a non-graph kNN baseline</div>
-    <div class="step"><b>3 · Active sampling</b><br>score cells by uncertainty × inverse local density → query the sparse rare pockets</div>
-    <div class="step"><b>4 · Audited metrics</b><br>accuracy · ECE · rare-state recall under four leakage-checked splits</div>
+    <div class="step"><b>1 · Cell graph</b><br>a kNN graph over the expression embedding, with Betti-0 (component count) versus <i>k</i> serving as a topological descriptor</div>
+    <div class="step"><b>2 · Forecast</b><br>label propagation \(F \leftarrow \alpha S F + (1-\alpha)F_0\) compared against a point-classifier kNN baseline</div>
+    <div class="step"><b>3 · Active sampling</b><br>cells scored by uncertainty × inverse local density to query the sparse rare pockets</div>
+    <div class="step"><b>4 · Audited metrics</b><br>accuracy, ECE, and rare-state recall under four leakage-controlled splits</div>
   </div>
 </div></section>
 
 <section id="mathematics"><div class="wrap">
   <h2>Mathematics — the label-propagation objective and its uniqueness theorem</h2>
-  <p class="lead">The forecaster is not a heuristic: it is the exact minimizer of a graph-regularized energy. This
-    is the formal backbone behind the demo and the result table.</p>
+  <p class="lead">The forecaster is not a heuristic; it is the exact minimizer of a graph-regularized energy. This
+    formulation constitutes the formal foundation underlying the demonstration and the results table.</p>
 
   <h3 style="margin-top:8px">Graph-regularized label energy</h3>
   <p class="note">Let \(L=D-A\) be the combinatorial Laplacian of the symmetric kNN graph, \(Y\) the clamped
@@ -180,26 +181,26 @@
       and \(\nabla\mathcal E=0\) gives the closed form. The normalized iteration \(F\leftarrow\alpha S F+(1-\alpha)F_0\)
       converges to the same fixed point. ∎</p>
   </div>
-  <p class="note" style="margin-top:10px">The theorem also names a failure mode transparently: a component lacking any <b>labeled</b> cell is unidentified (its block of \(M\) is zero) — which is exactly what motivates the active-sampling
-    policy below.</p>
+  <p class="note" style="margin-top:10px">The theorem likewise delineates a failure mode candidly: a component that lacks any <b>labeled</b> cell remains unidentified (its block of \(M\) vanishes) — a circumstance that directly motivates the active-sampling
+    policy presented below.</p>
 
   <h3 style="margin-top:18px">Active sampling and the audited metrics</h3>
-  <p class="note">The acquisition score targets uncertain cells in sparse (rare) pockets, and the scoreboard is three
+  <p class="note">The acquisition score targets uncertain cells situated in sparse (rare) pockets, and the evaluation comprises three
     exact quantities:</p>
   <div class="card" style="overflow:auto">
     <p>$$a(i)=\underbrace{\big(1-\max_c F^\star_{ic}\big)}_{\text{margin uncertainty}}\times\underbrace{\rho(i)^{-1}}_{\text{inverse local density}},\qquad
        \mathrm{recall}_{\text{rare}}=\frac{\mathrm{TP}_{\text{rare}}}{\mathrm{TP}_{\text{rare}}+\mathrm{FN}_{\text{rare}}} .$$</p>
   </div>
-  <p class="note">Accuracy and ECE follow the standard definitions; rare-state recall isolates performance on the
-    few-percent population that point classifiers miss.</p>
+  <p class="note">Accuracy and ECE follow their standard definitions; rare-state recall isolates performance on the
+    few-percent population that point classifiers fail to recover.</p>
 </div></section>
 
 <section id="demo"><div class="wrap">
-  <h2>Live demo — runs entirely in your browser</h2>
-  <p class="lead">Generate a synthetic <b>branching lineage</b>, build a kNN graph live with the
-    <b>k</b> slider, and let <b>label propagation</b> forecast the unlabeled cells from a few seeds.
-    Then press <b>Active sample</b> to watch the topology-aware policy pick the next cells to
-    annotate — the same algorithm as the Python package, entirely in-browser, with every value computed live.</p>
+  <h2>Interactive demonstration — executes entirely within the browser</h2>
+  <p class="lead">Generate a synthetic <b>branching lineage</b>, construct a kNN graph interactively via the
+    <b>k</b> control, and allow <b>label propagation</b> to forecast the unlabeled cells from a small set of seeds.
+    Activating <b>Active sample</b> then exhibits the topology-aware policy selecting the subsequent cells to
+    annotate — the identical algorithm implemented in the Python package, executed entirely in-browser, with every value computed at runtime.</p>
   <div class="demo">
     <div class="controls card">
       <label>Cells: <span id="nlbl">160</span></label>
@@ -212,20 +213,20 @@
       <input type="range" id="seeds" min="4" max="30" value="8">
       <button id="gen">↻ New lineage</button>
       <button class="go" id="prop">▶ Propagate labels</button>
-      <button class="alt" id="active">✚ Active sample (find rare)</button>
-      <p class="note" style="margin-top:14px">Cells colored by <b>predicted</b> state; ✕ marks an annotated seed; the rare state is the star. Toggle the right panel to see true vs predicted.</p>
+      <button class="alt" id="active">✚ Active sample (recover rare)</button>
+      <p class="note" style="margin-top:14px">Cells are colored by <b>predicted</b> state; ✕ denotes an annotated seed; the rare state is rendered as a star. The right panel contrasts the ground-truth and predicted assignments.</p>
     </div>
     <div>
       <div class="stage">
         <div><canvas id="cells" width="420" height="340"></canvas>
-          <p class="note">kNN graph + cells (predicted state). Edges are the propagation paths.</p></div>
+          <p class="note">The kNN graph and cells, colored by predicted state. Edges denote the propagation paths.</p></div>
         <div><canvas id="truth" width="420" height="340"></canvas>
-          <p class="note">Ground-truth states. Red cross-hairs = cells the policy would query next.</p></div>
+          <p class="note">Ground-truth states. Red cross-hairs indicate the cells the policy would query next.</p></div>
       </div>
       <div class="legend" id="legend"></div>
       <div class="readout">
         <div class="ro high-quality"><b id="r-acc">–</b><span>graph-smoothed accuracy</span></div>
-        <div class="ro warn"><b id="r-base">–</b><span>non-graph kNN accuracy</span></div>
+        <div class="ro warn"><b id="r-base">–</b><span>point-classifier kNN accuracy</span></div>
         <div class="ro"><b id="r-rare">–</b><span>rare-state recall (graph)</span></div>
         <div class="ro"><b id="r-comp">–</b><span>connected components (Betti-0)</span></div>
       </div>
@@ -235,93 +236,95 @@
 
 <section id="results"><div class="wrap">
   <h2>Results</h2>
-  <p class="lead">Smoke-scale, 400 cells, 4 states (5% rare), 10% annotated, k=15 —
-    <b>regenerated by <code>make demo</code></b> (never hand-edited). The reported-scale run is
-    <code>make full-run</code>.</p>
+  <p class="lead">Full-scale configuration: 3000 cells, 16 features, 8 donors, 4 batches, 5 perturbation conditions,
+    a deliberately rare state (~4% of cells), <i>k</i>=20, 3% of the training pool annotated, and 5 random seeds —
+    <b>regenerated deterministically by the package</b> (never hand-edited). Values are transcribed exactly from the
+    generated <code>main_results.tex</code>.</p>
   <table>
     <thead><tr><th>split</th><th>method</th><th>accuracy</th><th>ECE</th><th>rare-state recall</th></tr></thead>
     <tbody>
-      <tr class="best"><td>donor</td><td>graph-smoothed (ours)</td><td>0.7048</td><td>0.1886</td><td>0.7500</td></tr>
-      <tr><td>donor</td><td>baseline kNN</td><td>0.5048</td><td>0.1410</td><td>0.0000</td></tr>
-      <tr class="best"><td>batch</td><td>graph-smoothed (ours)</td><td>0.6961</td><td>0.1479</td><td>1.0000</td></tr>
-      <tr><td>batch</td><td>baseline kNN</td><td>0.3676</td><td>0.1039</td><td>0.0000</td></tr>
-      <tr class="best"><td>time</td><td>graph-smoothed (ours)</td><td>0.7514</td><td>0.2903</td><td>0.0000</td></tr>
-      <tr><td>time</td><td>baseline kNN</td><td>0.2260</td><td>0.2682</td><td>0.0000</td></tr>
-      <tr class="best"><td>perturbation</td><td>graph-smoothed (ours)</td><td>0.6277</td><td>0.1582</td><td>0.8333</td></tr>
-      <tr><td>perturbation</td><td>baseline kNN</td><td>0.5182</td><td>0.0808</td><td>0.0000</td></tr>
+      <tr class="best"><td>donor</td><td>graph-smoothed (ours)</td><td>0.7004</td><td>0.1247</td><td>0.1520</td></tr>
+      <tr><td>donor</td><td>baseline kNN</td><td>0.6550</td><td>0.1073</td><td>0.0000</td></tr>
+      <tr class="best"><td>batch</td><td>graph-smoothed (ours)</td><td>0.6995</td><td>0.1383</td><td>0.4618</td></tr>
+      <tr><td>batch</td><td>baseline kNN</td><td>0.6355</td><td>0.0905</td><td>0.0320</td></tr>
+      <tr class="best"><td>time</td><td>graph-smoothed (ours)</td><td>0.5474</td><td>0.1328</td><td>0.0000</td></tr>
+      <tr><td>time</td><td>baseline kNN</td><td>0.4574</td><td>0.0970</td><td>0.0000</td></tr>
+      <tr class="best"><td>perturbation</td><td>graph-smoothed (ours)</td><td>0.6875</td><td>0.1649</td><td>0.3393</td></tr>
+      <tr><td>perturbation</td><td>baseline kNN</td><td>0.6490</td><td>0.1184</td><td>0.0286</td></tr>
     </tbody>
   </table>
-  <p class="note" style="margin-top:12px">Headline: graph-smoothed mean accuracy <b>0.6950</b> vs
-    baseline <b>0.4042</b> (<b>+0.2908</b>); topology-aware active sampling reaches rare-state
-    recall <b>0.833</b> vs <b>0.000</b> for random querying at the same budget. Graph propagation
-    trades a little calibration (higher ECE) for the accuracy and rare-recall gains — both
-    reported, not hidden. The labeled set is drawn only from the train side of each split (the
-    held-out group/time is never annotated, asserted in tests).</p>
+  <p class="note" style="margin-top:12px">Principal findings: the graph-smoothed forecaster attains a mean held-out
+    accuracy of <b>0.6587</b>, in contrast to <b>0.5992</b> for the baseline (a mean gain of <b>+0.0595</b>); the
+    topology-aware active-sampling policy raises rare-state recall to <b>0.3556</b> (95% CI ±0.1597), in contrast to
+    <b>0.0247</b> (±0.0285) under uniform random querying at the same annotation budget. Graph propagation incurs a
+    modest calibration cost (a higher ECE) in exchange for the accuracy and rare-recall improvements — both quantities
+    are reported transparently rather than withheld. The labeled set is drawn exclusively from the training side of
+    each split, and the held-out group or timepoint is never annotated, a property asserted in the test suite.</p>
 </div></section>
 
 <section id="significance"><div class="wrap">
-  <h2>Statistical significance &amp; what is novel</h2>
-  <p class="lead">The gains are reported per split with their transparent trade-offs, and the novelty is stated as a
-    method contribution rather than a leaderboard ranking.</p>
+  <h2>Statistical significance and the nature of the contribution</h2>
+  <p class="lead">The improvements are reported per split together with their attendant trade-offs, and the
+    contribution is framed as a methodological advance rather than a comparative ranking.</p>
   <div class="grid2">
     <div class="card">
       <h3>Effect size, per split</h3>
-      <p>Graph smoothing raises mean accuracy from <b>0.4042</b> to <b>0.6950</b> (<b>+0.2908</b>). The effect is
-        largest exactly where a point classifier breaks: under the <code>time</code> split accuracy rises
-        \(0.226\to0.751\), under <code>batch</code> \(0.368\to0.696\) — transfer regimes where unlabeled neighbours
-        carry the signal.</p>
+      <p>Graph smoothing raises the mean held-out accuracy from <b>0.5992</b> to <b>0.6587</b> (<b>+0.0595</b>). The
+        effect is most pronounced precisely where a point classifier degrades: under the <code>time</code> split
+        accuracy rises \(0.4574\to0.5474\), and under <code>batch</code> \(0.6355\to0.6995\) — transfer regimes in
+        which unlabeled neighbours convey the signal.</p>
     </div>
     <div class="card">
       <h3>Rare-state recovery</h3>
-      <p>The headline systems result: topology-aware active sampling reaches rare-state recall <b>0.833</b> vs
-        <b>0.000</b> for random querying at the same annotation budget. Per split the graph forecaster recovers the
-        rare state at recall \(0.75\) (donor), \(1.00\) (batch), \(0.833\) (perturbation), where the baseline scores
-        \(0.000\) throughout.</p>
+      <p>The principal result at the systems level: topology-aware active sampling attains rare-state recall
+        <b>0.3556</b>, in contrast to <b>0.0247</b> for random querying at the same annotation budget. Per split the
+        graph forecaster recovers the rare state at recall \(0.1520\) (donor), \(0.4618\) (batch), and \(0.3393\)
+        (perturbation), whereas the baseline records \(0.0000\), \(0.0320\), and \(0.0286\) respectively.</p>
     </div>
     <div class="card">
       <h3>The transparent trade-off</h3>
-      <p>Graph propagation trades a little <b>calibration</b> for accuracy: ECE rises (e.g. \(0.29\) under
-        <code>time</code>) because diffusion sharpens decisions in low-evidence regions. We report ECE alongside
-        accuracy rather than hiding it, and the <code>time</code> split shows the limit — high accuracy can co-occur
-        with zero rare recall when the rare pocket is disconnected.</p>
+      <p>Graph propagation exchanges a modest degree of <b>calibration</b> for accuracy: ECE increases (for example,
+        \(0.1328\) under <code>time</code>) because diffusion sharpens decisions in low-evidence regions. We report
+        ECE alongside accuracy rather than suppressing it, and the <code>time</code> split exposes the limit — high
+        accuracy may coincide with zero rare recall when the rare pocket lies beyond the training distribution.</p>
     </div>
     <div class="card">
-      <h3>The novelty, stated precisely</h3>
-      <p>Not a new assay or a deeper network. The contribution is (i) casting next-state forecasting as <b>graph
-        diffusion with a uniqueness guarantee</b>, (ii) a <b>topology-aware active sampler</b> that provably targets
-        the unidentified components, and (iii) <b>four leakage-checked transfer splits</b>
-        (donor/batch/time/perturbation) with an audited scoreboard.</p>
+      <h3>The contribution, stated precisely</h3>
+      <p>Neither a new assay nor a deeper network. The contribution comprises (i) formulating subsequent-state
+        forecasting as <b>graph diffusion with a uniqueness guarantee</b>, (ii) a <b>topology-aware active sampler</b>
+        that provably targets the unidentified components, and (iii) <b>four leakage-controlled transfer splits</b>
+        (donor, batch, time, perturbation) accompanied by an audited evaluation.</p>
     </div>
   </div>
 </div></section>
 
 <section id="theory"><div class="wrap">
-  <h2>Why label propagation works — and why Betti-0 is monotone</h2>
-  <p class="lead">Label propagation is the normalized graph diffusion of Zhou et al. (2004). With
-    symmetric adjacency \(A\), degree \(D\) and \(S=D^{-1/2}AD^{-1/2}\), it iterates
-    \(F \leftarrow \alpha S F + (1-\alpha)F_0\) to a fixed point that balances smoothness on the
+  <h2>Why label propagation succeeds — and why Betti-0 is monotone</h2>
+  <p class="lead">Label propagation is the normalized graph diffusion of Zhou et al. (2004). Given a
+    symmetric adjacency \(A\), degree \(D\), and \(S=D^{-1/2}AD^{-1/2}\), it iterates
+    \(F \leftarrow \alpha S F + (1-\alpha)F_0\) toward a fixed point that balances smoothness on the
     cell graph against the clamped seed labels \(F_0\):</p>
   <div class="card" style="overflow:auto">
     <p>$$F^\star=(1-\alpha)\,(I-\alpha S)^{-1}F_0,\qquad
       \hat y(i)=\arg\max_c F^\star_{ic}.$$</p>
   </div>
   <p class="note" style="margin-top:12px">The graph's <b>number of connected components</b> equals
-    the rank of \(H_0\) (Betti-0). Increasing \(k\) only <i>adds</i> edges, and adding an edge can
-    merge two components but never split one — so the component count is
-    <b>monotone non-increasing in \(k\)</b>. The package builds the curve and a test asserts the
-    monotonicity on seeded data, so the topology feature is the trusted feature.</p>
+    the rank of \(H_0\) (Betti-0). Increasing \(k\) only <i>adds</i> edges, and the addition of an edge may
+    merge two components but never partition one — hence the component count is
+    <b>monotone non-increasing in \(k\)</b>. The package constructs the curve and a test asserts this
+    monotonicity on seeded data, establishing the topological descriptor as a verified quantity.</p>
 </div></section>
 
 <section id="conclusion"><div class="wrap">
   <h2>Conclusion and contribution map</h2>
-  <p class="lead">For a hiring-manager read, the value is a complete, reproducible graph-learning workflow
-    for scarce biological labels: synthetic data generator, leakage-checked splits, topology metrics, label propagation,
-    active sampling, audited result tables, and an interactive browser demonstration. The result is strongest where
-    annotation is scarce and rare states matter.</p>
+  <p class="lead">The work delivers a complete, reproducible graph-learning workflow for the scarce-label biological
+    regime: a synthetic data generator, leakage-controlled splits, topological descriptors, label propagation,
+    active sampling, audited results tables, and an interactive browser demonstration. The improvement is most
+    pronounced where annotation is scarce and rare states are of consequence.</p>
   <div class="grid3">
-    <div class="card"><h3>Scientific contribution</h3><p>Connects topological graph structure, especially Betti-0 over \(k\), to single-cell state forecasting and rare-population recovery.</p></div>
-    <div class="card"><h3>Engineering contribution</h3><p>Implements seeded lineage generation, symmetric kNN graphs, graph diffusion, active sampling, split checks, and browser-side visualization.</p></div>
-    <div class="card"><h3>Practical contribution</h3><p>Prioritizes expensive annotations toward uncertain, low-density regions where rare biological states are easiest to miss.</p></div>
+    <div class="card"><h3>Scientific contribution</h3><p>Relates topological graph structure, in particular Betti-0 as a function of \(k\), to single-cell state forecasting and rare-population recovery.</p></div>
+    <div class="card"><h3>Engineering contribution</h3><p>Implements seeded lineage generation, symmetric kNN graphs, graph diffusion, active sampling, split verification, and browser-side visualization.</p></div>
+    <div class="card"><h3>Practical contribution</h3><p>Directs costly annotations toward uncertain, low-density regions in which rare biological states are most readily overlooked.</p></div>
   </div>
 </div></section>
 
@@ -338,13 +341,14 @@ make test            # leakage-free splits + Betti-0 monotonicity + metric bound
 make demo            # writes results/summary.json in ~0.2 s
 make tables figures  # regenerate the table above + figures
 make audit           # readiness gate: every number traces to an artifact</pre>
-  <p class="note">Everything on this page — the table, the figures, and the label-propagation math in the demo —
-    is produced by the package in <a href="code/">code/</a>. Every number is generated programmatically.</p>
+  <p class="note">Every element of this page — the table, the figures, and the label-propagation mathematics in the
+    demonstration — is produced by the package in <a href="code/">code/</a>. Every reported value is generated
+    programmatically.</p>
 </div></section>
 
 <footer><div class="wrap">
   <p><b>Molena Huynh, PhD</b> · Topological Graph RL for Single-Cell State Transition and Perturbation Forecasting</p>
-  <p class="note">All experiments are reproducible on commodity hardware; runtime and memory are reported for each benchmark.</p>
+  <p class="note">All experiments are reproducible on commodity hardware; runtime and peak memory are reported for each benchmark.</p>
 </div></footer>
 
 <script>

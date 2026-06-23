@@ -7,13 +7,20 @@
 \usepackage{xcolor}\definecolor{nmiaccent}{HTML}{1A4E8A}
 \usepackage[colorlinks=true,allcolors=nmiaccent]{hyperref}
 \usepackage{titlesec}\usepackage{fancyhdr}\usepackage{authblk}
-\captionsetup{font=small,labelfont=bf,labelsep=period}\graphicspath{{figures/}}\setlength{\parskip}{0.45em}
+\captionsetup{font=small,labelfont=bf,labelsep=period}\graphicspath{{code/figures/}}\setlength{\parskip}{0.45em}
 \renewcommand{\Affilfont}{\normalsize\itshape}\renewcommand{\Authfont}{\large\bfseries}
 \titleformat{\section}{\sffamily\large\bfseries\color{nmiaccent}}{\thesection}{0.6em}{}
 \titleformat{\subsection}{\sffamily\normalsize\bfseries}{\thesubsection}{0.6em}{}
 \pagestyle{fancy}\fancyhf{}\fancyhead[L]{\footnotesize\itshape Graph-structure-aware learning of single-cell transitions}\fancyhead[R]{\footnotesize\thepage}\renewcommand{\headrulewidth}{0.4pt}
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\theoremstyle{plain}
 \title{\bfseries\LARGE Graph-structure-aware label propagation and active sampling for few-label single-cell state forecasting and rare-state recovery}
 \author[ ]{Molena Huynh}\affil[ ]{[Affiliation to be completed before submission] \quad\textperiodcentered\quad Correspondence: \texttt{[corresponding-author email]}}
 \date{}
@@ -22,7 +29,7 @@
 \begin{abstract}
 \noindent
 Forecasting how single cells move between states---across donors, batches, timepoints and
-perturbations---is a core single-cell analysis task, but it is confounded by biological and
+perturbations---is a core single-cell analysis task, yet it is confounded by biological and
 technical nuisance variation and by the rarity of the cell states that matter most. We ask a
 deliberately narrow, falsifiable question: does conditioning a forecaster on the connectivity of
 the cell $k$-nearest-neighbour ($k$NN) graph, rather than on point features alone, improve
@@ -54,7 +61,7 @@ technical batch run later, a later point along a developmental trajectory, or an
 perturbation. The data that support such forecasts share two structural features. First, cells do
 not occupy feature space uniformly; they concentrate near a low-dimensional manifold that is
 routinely approximated by a $k$-nearest-neighbour ($k$NN) graph before clustering, embedding or
-pseudotime inference \cite{wolf2018scanpy,mcinnes2018umap,becht2019umap}. Second, the biologically
+pseudotime inference \cite{wolf2018scanpy,mcinnes2018umap,becht2019umap,vandermaaten2008tsne,belkin2003laplacian,luxburg2007spectral}. Second, the biologically
 decisive states---transient progenitors, treatment-resistant clones---are frequently rare, and
 ordinary point classifiers, trained to minimise average error, tend to ignore them.
 
@@ -105,8 +112,9 @@ check.}
 \end{figure}
 
 \subsection{A controlled synthetic lineage with replicate, condition and pseudotime structure}
-The end-to-end pipeline is summarized in Fig.~\ref{fig:schematic}. The benchmark is a seeded
-synthetic branching lineage (Fig.~\ref{fig:lineage}). Cells live in a
+Our benchmark is a seeded synthetic branching lineage that reproduces the replicate, condition and
+pseudotime structure a real forecaster must handle, while remaining bit-for-bit reproducible
+(Figs.~\ref{fig:schematic},~\ref{fig:lineage}). Cells live in a
 low-dimensional feature space---a stand-in for a PCA or latent embedding of expression---and
 progress along a tree of three branches (a common progenitor and two fates that split at pseudotime
 $0.45$) as Gaussian blobs whose mean drifts along each branch. Early cells therefore overlap and
@@ -154,7 +162,7 @@ uncertainty times inverse local density raises rare-state recall on the remainin
 querying---a lift of \num{0.3309}. The mechanism is visible in the query composition: the topology
 policy spends \SI{36.7}{\percent} of its queries on genuinely rare cells, against \SI{3.0}{\percent}
 for random sampling, which is close to the \SI{4}{\percent} base rate. The wide confidence intervals
-on the per-split rare-recall numbers (for example $\pm\num{0.3565}$ on the batch split) reflect the
+on the per-split rare-recall numbers (for example $\pm\num{0.3125}$ on the batch split) reflect the
 small absolute count of rare cells per held-out group and should temper any strong reading of the
 point estimates.
 
@@ -171,13 +179,42 @@ application that depends on calibrated probabilities would need post-hoc recalib
 
 \begin{table}[t]
 \centering
-\caption{Held-out forecasting on the synthetic branching lineage (full-scale configuration:
-\num{3000} cells, \num{5} seeds). For each leakage-checked split we report forecast accuracy,
-expected calibration error (ECE) and rare-state recall for graph-smoothed label propagation and the
-plain $k$NN baseline. Higher accuracy and recall are better; \emph{lower} ECE is better. Values are
-transcribed exactly from \texttt{results/main\_results.tex}.}
+\caption{\textbf{Held-out forecasting on the synthetic branching lineage.} Full-scale configuration:
+$n=\num{3000}$ cells, $n_\text{seeds}=\num{5}$ random seeds. For each leakage-checked split we report
+forecast accuracy, expected calibration error (ECE) and rare-state recall (mean $\pm$ \SI{95}{\percent}
+confidence interval, $1.96\,s/\sqrt{n}$) for graph-smoothed label propagation (\textbf{GS}) and the
+plain $k$NN baseline (\textbf{kNN}). Higher accuracy and recall are better (best in each split shown in
+\textbf{bold}); \emph{lower} ECE is better. Rare-state recall is undefined-then-set-to-zero on splits
+whose held-out set contains no rare cells. Values are transcribed exactly from
+\texttt{results/summary.json} (and agree with the generated \texttt{results/main\_results.tex}).}
 \label{tab:main}
-\input{tables/main_results.tex}
+\sisetup{table-format=1.4,detect-weight=true}
+\setlength{\tabcolsep}{4pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llS[table-format=1.4]@{\,$\pm$\,}S[table-format=1.4]
+S[table-format=1.4]@{\,$\pm$\,}S[table-format=1.4]
+S[table-format=1.4]@{\,$\pm$\,}S[table-format=1.4]}
+\toprule
+ & & \multicolumn{2}{c}{Accuracy $\uparrow$} & \multicolumn{2}{c}{ECE $\downarrow$} & \multicolumn{2}{c}{Rare recall $\uparrow$}\\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+Split & Method & {mean} & {CI} & {mean} & {CI} & {mean} & {CI}\\
+\midrule
+donor & GS  & \bfseries 0.7004 & 0.0093 & 0.1247 & 0.0425 & \bfseries 0.1520 & 0.0586\\
+donor & kNN & 0.6550 & 0.0491 & \bfseries 0.1073 & 0.0330 & 0.0000 & 0.0000\\
+\addlinespace[2pt]
+batch & GS  & \bfseries 0.6995 & 0.0085 & 0.1383 & 0.0219 & \bfseries 0.4618 & 0.3125\\
+batch & kNN & 0.6355 & 0.0363 & \bfseries 0.0905 & 0.0339 & 0.0320 & 0.0627\\
+\addlinespace[2pt]
+time & GS  & \bfseries 0.5474 & 0.1092 & 0.1328 & 0.0345 & 0.0000 & 0.0000\\
+time & kNN & 0.4574 & 0.0825 & \bfseries 0.0970 & 0.0524 & 0.0000 & 0.0000\\
+\addlinespace[2pt]
+perturbation & GS  & \bfseries 0.6875 & 0.0323 & 0.1649 & 0.0385 & \bfseries 0.3393 & 0.3358\\
+perturbation & kNN & 0.6490 & 0.0221 & \bfseries 0.1184 & 0.0376 & 0.0286 & 0.0560\\
+\midrule
+\multicolumn{2}{l}{\emph{mean over splits}} & \bfseries 0.6587 & {--} & {--} & {--} & \bfseries 0.2383 & {--}\\
+\multicolumn{2}{l}{\emph{mean over splits (kNN)}} & 0.5992 & {--} & {--} & {--} & 0.0151 & {--}\\
+\bottomrule
+\end{tabular}}
 \end{table}
 
 \begin{figure}[t]
@@ -213,40 +250,402 @@ over $n=\num{5}$ random seeds. All panels are drawn directly from
 \label{fig:forecast}
 \end{figure}
 
-\subsection{Theory: graph smoothing as a variational estimator}
+\subsection{Theory of graph-structure-aware forecasting}
+\label{sec:theory}
+We now make precise, and prove in full, every structural property that the
+forecaster of Figs.~\ref{fig:schematic}--\ref{fig:forecast} relies upon. The
+development is self-contained: we fix notation (Definition~\ref{def:graph}),
+establish the Dirichlet-energy identity and the spectral facts it implies
+(Lemma~\ref{lem:dirichlet}, Corollary~\ref{cor:nullspace}), prove that the
+connectivity diagnostic we monitor is monotone in the neighbourhood size
+(Proposition~\ref{prop:betti}), characterise label propagation as the unique
+minimiser of a convex graph-regularised objective together with its exact
+non-identifiability limitation (Theorem~\ref{thm:label-prop},
+Corollary~\ref{cor:nonident}), and finally show that the normalised power
+iteration the code actually runs converges geometrically to a closed-form fixed
+point that is itself the minimiser of a normalised energy
+(Theorem~\ref{thm:spectrum}--Theorem~\ref{thm:fixedpoint}). Each result is tied
+to the experiment it underwrites. Throughout, $\mathbf{1}$ denotes the all-ones
+vector, $\|\cdot\|_2$ the Euclidean norm, $\|\cdot\|_F$ the Frobenius norm,
+$\operatorname{Tr}$ the trace, and for a matrix $X$ we write $X\succeq0$
+($X\succ0$) for positive semidefinite (positive definite).
+
+\begin{definition}[Cell graph, degree, Laplacian]
+\label{def:graph}
+Let $A\in\mathbb{R}^{n\times n}$ be the symmetric adjacency of the $k$NN cell
+graph on $n$ cells: $A=A^\top$, $A_{ij}\ge0$, $A_{ii}=0$, and $A_{ij}>0$ iff
+cells $i,j$ are joined by an undirected edge. The \emph{degree} of cell $i$ is
+$d_i=\sum_{j}A_{ij}\ge0$, collected in $D=\operatorname{diag}(d_1,\dots,d_n)$.
+The \emph{combinatorial graph Laplacian} is $L=D-A$. The \emph{Betti-0 number}
+$\beta_0(A)$ is the number of connected components of the graph, i.e.\ the number
+of equivalence classes of the reachability relation on $\{1,\dots,n\}$ induced
+by the edges of $A$.
+\end{definition}
+
+\begin{lemma}[Dirichlet-energy identity and positive semidefiniteness]
+\label{lem:dirichlet}
+For every $f\in\mathbb{R}^{n}$,
+\begin{equation}
+\label{eq:dirichlet}
+f^\top L f \;=\; \tfrac12\sum_{i=1}^{n}\sum_{j=1}^{n} A_{ij}\,(f_i-f_j)^2 \;\ge\; 0,
+\end{equation}
+so $L\succeq0$. More generally, for $F\in\mathbb{R}^{n\times c}$,
+$\operatorname{Tr}(F^\top L F)=\tfrac12\sum_{i,j}A_{ij}\|F_i-F_j\|_2^2$, where
+$F_i$ is the $i$-th row of $F$.
+\end{lemma}
+
+\begin{proof}
+Expand the quadratic form using $L=D-A$:
+\[
+f^\top L f = \sum_i d_i f_i^2 - \sum_{i,j} A_{ij} f_i f_j
+= \sum_{i}\Big(\sum_j A_{ij}\Big) f_i^2 - \sum_{i,j} A_{ij} f_i f_j,
+\]
+where the first equality uses $d_i=\sum_j A_{ij}$. Now use the symmetry
+$A_{ij}=A_{ji}$ to write the diagonal term symmetrically,
+$\sum_i d_i f_i^2 = \tfrac12\sum_{i,j}A_{ij}(f_i^2+f_j^2)$, since
+$\sum_{i,j}A_{ij}f_i^2=\sum_i d_i f_i^2$ and likewise
+$\sum_{i,j}A_{ij}f_j^2=\sum_j d_j f_j^2=\sum_i d_i f_i^2$. Therefore
+\[
+f^\top L f = \tfrac12\sum_{i,j}A_{ij}\big(f_i^2 + f_j^2 - 2f_i f_j\big)
+= \tfrac12\sum_{i,j}A_{ij}(f_i-f_j)^2.
+\]
+Because $A_{ij}\ge0$ and $(f_i-f_j)^2\ge0$, every summand is nonnegative, so
+$f^\top L f\ge0$ for all $f$, i.e.\ $L\succeq0$. The matrix statement follows by
+applying \eqref{eq:dirichlet} columnwise: writing $F=[f^{(1)}\cdots f^{(c)}]$,
+$\operatorname{Tr}(F^\top L F)=\sum_{\ell=1}^{c}(f^{(\ell)})^\top L f^{(\ell)}
+=\tfrac12\sum_{i,j}A_{ij}\sum_{\ell}(F_{i\ell}-F_{j\ell})^2
+=\tfrac12\sum_{i,j}A_{ij}\|F_i-F_j\|_2^2$.
+\end{proof}
+
+\begin{corollary}[Null space of $L$ and the spectral count of components]
+\label{cor:nullspace}
+$L\mathbf{1}=0$, so constant label vectors cost zero Dirichlet energy. Moreover
+the multiplicity of the eigenvalue $0$ of $L$ equals $\beta_0(A)$, the number of
+connected components. In particular the smallest eigenvalue of $L$ is $0$, and
+$L\succ0$ on the orthogonal complement of its null space.
+\end{corollary}
+
+\begin{proof}
+$ (L\mathbf{1})_i=d_i-\sum_j A_{ij}=0$ by definition of $d_i$, so
+$\mathbf{1}\in\ker L$. For the multiplicity claim, suppose $f\in\ker L$. By
+\eqref{eq:dirichlet}, $f^\top L f=0$ forces $A_{ij}(f_i-f_j)^2=0$ for every
+$i,j$; hence $f_i=f_j$ whenever $A_{ij}>0$, i.e.\ $f$ is constant along every
+edge and therefore constant on each connected component. Conversely, any vector
+that is constant on each component lies in $\ker L$ by the same identity (all
+cross-edge differences vanish). Thus $\ker L$ is exactly the space of
+component-wise constant vectors, which has dimension equal to the number of
+components $\beta_0(A)$; choosing the indicator vector of each component gives a
+basis. Since $L\succeq0$ (Lemma~\ref{lem:dirichlet}) and is symmetric, all
+eigenvalues are real and nonnegative and the geometric multiplicity of the
+eigenvalue $0$ equals $\dim\ker L=\beta_0(A)$; on $(\ker L)^\perp$ the form is
+strictly positive, so $L\succ0$ there.
+\end{proof}
+
+Corollary~\ref{cor:nullspace} is the formal content of the ``Betti-0 ties to the
+zero-eigenvalue multiplicity'' statement and underlies why a label-free component
+cannot be resolved (Corollary~\ref{cor:nonident}).
+
+\begin{proposition}[Monotonicity of the connectivity diagnostic]
+\label{prop:betti}
+Let $A^{(k)}$ denote the symmetric $k$NN adjacency built with neighbourhood size
+$k$ (either-direction symmetrisation: an edge $\{i,j\}$ is present iff $j$ is
+among the $k$ nearest neighbours of $i$ or $i$ is among the $k$ nearest
+neighbours of $j$). Then the edge set is monotone non-decreasing in $k$,
+$E(A^{(k)})\subseteq E(A^{(k+1)})$, and consequently the Betti-0 number is
+monotone non-increasing: $\beta_0\!\big(A^{(k+1)}\big)\le \beta_0\!\big(A^{(k)}\big)$
+for all $k\ge1$.
+\end{proposition}
+
+\begin{proof}
+Fix a cell $i$ and let $N_k(i)$ be its set of $k$ nearest neighbours (self
+excluded), ordered by increasing distance with ties broken by a fixed rule. By
+construction $N_k(i)\subseteq N_{k+1}(i)$: enlarging the budget from $k$ to $k+1$
+only appends the next-nearest cell and removes none. Hence the directed edge set
+$\{(i,j):j\in N_k(i)\}$ grows with $k$. Symmetrisation is monotone in the
+directed edge set (it takes the entrywise maximum of the directed adjacency and
+its transpose), so $E(A^{(k)})\subseteq E(A^{(k+1)})$. Adding edges to a graph
+can only merge connected components, never split them: if $i,j$ are reachable in
+$A^{(k)}$ they remain reachable in $A^{(k+1)}$, so each component of $A^{(k)}$ is
+contained in a component of $A^{(k+1)}$, giving a surjection from components of
+$A^{(k)}$ onto components of $A^{(k+1)}$. A surjection cannot increase
+cardinality, whence $\beta_0(A^{(k+1)})\le\beta_0(A^{(k)})$.
+\end{proof}
+
+Proposition~\ref{prop:betti} is the property asserted by the build-time
+monotonicity gate over the neighbourhood sizes $k\in\{2,4,8,16,32\}$; at the
+reported scale the curve is the constant $\beta_0=1$ (a single component), so the
+diagnostic passes vacuously and is, as we stress throughout, a passive sanity
+check rather than an informative descriptor (Fig.~\ref{fig:schematic}).
+
+\paragraph{Label propagation as a variational estimator.}
 The graph-smoothed forecaster used in Fig.~\ref{fig:forecast} is label
-propagation on the cell $k$NN graph. The following variational form makes clear
-what the algorithm optimises.
+propagation on the cell $k$NN graph. The following theorem states exactly what it
+optimises, proves the minimiser is unique on every component that carries a
+label, and---kept deliberately conditional---identifies the precise situation in
+which uniqueness fails.
 
 \begin{theorem}[Unique graph-regularised extension of labels]
 \label{thm:label-prop}
-Let $W=W^\top\ge0$ be the $k$NN affinity matrix, $L=D-W$ the graph Laplacian,
-$Y$ the one-hot label matrix on labelled cells and $M$ a diagonal mask with
-$M_{ii}=1$ for labelled cells and $0$ otherwise. For any $\mu>0$, the objective
-\[
-    J(F)=\operatorname{Tr}(F^\top L F)+\mu\|M(F-Y)\|_F^2
-\]
-has a unique minimiser on each connected component containing at least one
-labelled cell, and that minimiser satisfies the linear system
-$(L+\mu M)F=\mu MY$. Thus label propagation is the minimum-Dirichlet-energy
-extension of the observed labels subject to a finite fidelity penalty.
+Let $A=A^\top\succeq0$ be the $k$NN affinity, $L=D-A$ the Laplacian, $Y\in
+\mathbb{R}^{n\times c}$ the one-hot label matrix (rows of unlabelled cells
+arbitrary), and $M=\operatorname{diag}(m_1,\dots,m_n)$ with $m_i=1$ if cell $i$ is
+labelled and $m_i=0$ otherwise. For any fidelity weight $\mu>0$ the objective
+\begin{equation}
+\label{eq:objective}
+J(F)=\operatorname{Tr}(F^\top L F)+\mu\,\|M(F-Y)\|_F^2
+\end{equation}
+is convex in $F$, and any stationary point satisfies the normal equations
+\begin{equation}
+\label{eq:normal}
+(L+\mu M)\,F=\mu M Y.
+\end{equation}
+If \emph{every} connected component of the graph contains at least one labelled
+cell, then $L+\mu M\succ0$, the minimiser $F^\star=\mu(L+\mu M)^{-1}MY$ is unique,
+and it is the minimum-Dirichlet-energy extension of the observed labels subject
+to the fidelity penalty $\mu$.
 \end{theorem}
 
 \begin{proof}
-The Laplacian term is convex and equals
-$\frac12\sum_{ij}W_{ij}\|F_i-F_j\|_2^2$, penalising changes across graph edges.
-The fidelity term is convex and strictly penalises deviations on labelled
-vertices. On a connected component with at least one labelled vertex, a vector
-in the nullspace of both $L$ and $M$ must be constant on the component and zero
-on a labelled vertex, hence zero; therefore $L+\mu M$ is positive definite on
-that component. Differentiating $J$ gives
-$2LF+2\mu M(F-Y)=0$, yielding the stated system and uniqueness.
+\emph{Convexity.} By Lemma~\ref{lem:dirichlet}, $F\mapsto\operatorname{Tr}(F^\top
+L F)$ is a nonnegative quadratic form (Hessian $2L\succeq0$ in each column), hence
+convex; and $F\mapsto\|M(F-Y)\|_F^2$ is convex as the squared norm of an affine
+map. A sum of convex functions is convex, so $J$ is convex.
+
+\emph{Stationarity.} Write $J(F)=\operatorname{Tr}(F^\top L F)+\mu
+\operatorname{Tr}\!\big((F-Y)^\top M^\top M (F-Y)\big)$ and use $M^\top M=M$
+(since $M$ is a $0/1$ diagonal idempotent, $M^2=M$). The Fr\'echet derivative is
+\[
+\nabla_F J(F)=2LF+2\mu M(F-Y).
+\]
+Indeed, perturbing $F\to F+\epsilon H$ and collecting the first-order term,
+$\frac{d}{d\epsilon}\big|_{0}\operatorname{Tr}\big((F+\epsilon H)^\top L
+(F+\epsilon H)\big)=2\operatorname{Tr}(H^\top L F)$ using $L=L^\top$, and
+$\frac{d}{d\epsilon}\big|_{0}\mu\|M(F+\epsilon H-Y)\|_F^2
+=2\mu\operatorname{Tr}\big(H^\top M(F-Y)\big)$. Setting $\nabla_F J=0$ gives
+$2LF+2\mu M(F-Y)=0$, i.e.\ \eqref{eq:normal}.
+
+\emph{Definiteness under the labelled-component hypothesis.} The matrix
+$G:=L+\mu M$ is symmetric, and for any $v\in\mathbb{R}^n$,
+\[
+v^\top G v = \underbrace{v^\top L v}_{\ge0}+\mu\underbrace{v^\top M v}_{=\mu\sum_{i:\,m_i=1}v_i^2\ \ge0}\ \ge0,
+\]
+so $G\succeq0$. Suppose $v^\top G v=0$. Then both nonnegative terms vanish:
+$v^\top L v=0$ and $\sum_{i\,\text{labelled}}v_i^2=0$. By
+Corollary~\ref{cor:nullspace}, $v^\top L v=0$ forces $v$ to be constant on each
+connected component; and $\sum_{i\,\text{labelled}}v_i^2=0$ forces $v_i=0$ at
+every labelled cell. Under the hypothesis each component contains a labelled
+cell, so the constant value of $v$ on that component equals $0$; hence $v=0$ on
+every component, i.e.\ $v=0$. Therefore $v^\top Gv>0$ for all $v\neq0$, i.e.\
+$G\succ0$ and $G$ is invertible.
+
+\emph{Uniqueness and optimality.} Because $J$ is convex with Hessian (in each
+column) $2G\succ0$, it is strictly convex, so its unique global minimiser is the
+unique solution of $\nabla_F J=0$, namely
+$F^\star=\mu G^{-1}MY=\mu(L+\mu M)^{-1}MY$ from \eqref{eq:normal}. By
+construction $F^\star$ minimises the Dirichlet energy
+$\operatorname{Tr}(F^\top L F)$ among all $F$ subject to the soft fidelity
+constraint weighted by $\mu$, which is the claimed minimum-energy extension.
 \end{proof}
 
-The theorem also states the limitation: if a component has no labels, the labels
-there are not statistically identified by graph smoothing alone. The
-active-sampling experiment targets precisely this failure mode by querying
-sparse, uncertain regions.
+\begin{corollary}[Non-identifiability of a label-free component]
+\label{cor:nonident}
+If some connected component $C$ of the graph contains no labelled cell, then
+$L+\mu M$ is singular and the minimiser of \eqref{eq:objective} is \emph{not}
+unique: any minimiser $F^\star$ may be shifted by an arbitrary constant
+(per-class) vector supported on $C$ without changing $J$. Equivalently, the
+labels on a label-free component are not statistically identified by graph
+smoothing alone.
+\end{corollary}
+
+\begin{proof}
+Let $\mathbf{1}_C$ be the indicator of $C$ and $\mathbf{1}_C e_\ell^\top$ the
+$n\times c$ matrix that places $\mathbf{1}_C$ in class column $\ell$. Since $C$ is
+a union-free component, $\mathbf{1}_C\in\ker L$ by Corollary~\ref{cor:nullspace};
+and since $C$ has no labelled cell, $M\mathbf{1}_C=0$. Hence
+$(L+\mu M)\mathbf{1}_C=0$, so $L+\mu M$ is singular with $\mathbf{1}_C$ in its
+kernel. If $F^\star$ solves \eqref{eq:normal}, then for any
+$t\in\mathbb{R}$ the matrix $F^\star+t\,\mathbf{1}_C e_\ell^\top$ also solves it,
+because $(L+\mu M)(t\mathbf{1}_C e_\ell^\top)=0$; and it attains the same
+objective value, since both the Dirichlet term (the added field is component-wise
+constant, zero energy) and the fidelity term (no labelled cell in $C$) are
+unchanged. Thus the minimiser is non-unique on $C$.
+\end{proof}
+
+Corollary~\ref{cor:nonident} is the formal statement of the limitation the paper
+foregrounds: smoothing cannot invent a label class that is unreachable from the
+annotated set. It is exactly the failure mode that the active-sampling experiment
+attacks by spending its budget in sparse, uncertain regions
+(Fig.~\ref{fig:forecast}c), and it is the mechanism behind the null rare-state
+recall on the time split, where the rare late-tip cells lie beyond the labelled
+training distribution (Table~\ref{tab:main}).
+
+\paragraph{The normalised iteration the code runs.}
+The implementation does not solve \eqref{eq:normal} directly; it runs the
+normalised diffusion of Zhou et al.~\cite{zhou2004local}. We prove that this
+iteration is well posed, converges geometrically, and returns a closed-form fixed
+point that is itself the unique minimiser of a normalised energy.
+
+\begin{theorem}[Spectrum of the normalised adjacency]
+\label{thm:spectrum}
+Assume every cell has positive degree, $d_i>0$, and set
+$S=D^{-1/2}AD^{-1/2}$. Then $S$ is symmetric and every eigenvalue $\lambda$ of $S$
+satisfies $-1\le\lambda\le1$. Consequently, for any clamping parameter
+$\alpha\in(0,1)$, the matrix $I-\alpha S$ is symmetric positive definite and hence
+invertible, with eigenvalues in $[1-\alpha,1+\alpha]\subset(0,2)$.
+\end{theorem}
+
+\begin{proof}
+Symmetry of $S$ is immediate since $A=A^\top$ and $D^{-1/2}$ is diagonal. For the
+spectral bound, note $S$ is similar to the random-walk matrix $P=D^{-1}A$ via
+$S=D^{1/2}PD^{-1/2}$, so $S$ and $P$ share eigenvalues; we bound them on $S$
+directly. The normalised Laplacian is
+$\mathcal{L}=I-S=D^{-1/2}LD^{-1/2}$, which is congruent to $L\succeq0$
+(Lemma~\ref{lem:dirichlet}) through the invertible $D^{-1/2}$, hence
+$\mathcal{L}\succeq0$; this gives $S=I-\mathcal{L}\preceq I$, i.e.\ $\lambda\le1$
+for every eigenvalue $\lambda$ of $S$. For the lower bound, consider
+$I+S=D^{-1/2}(D+A)D^{-1/2}$, where $D+A$ is the \emph{signless} Laplacian; for any
+$f$, $f^\top(D+A)f=\tfrac12\sum_{i,j}A_{ij}(f_i+f_j)^2\ge0$ by the same expansion
+as in Lemma~\ref{lem:dirichlet} (replace the minus by a plus and use
+$A_{ij}\ge0$). Hence $D+A\succeq0$, so $I+S\succeq0$ by congruence, giving
+$\lambda\ge-1$. Therefore every eigenvalue of $S$ lies in $[-1,1]$. For
+$\alpha\in(0,1)$, the eigenvalues of $I-\alpha S$ are $1-\alpha\lambda\in
+[1-\alpha,\,1+\alpha]$, which are strictly positive; since $I-\alpha S$ is
+symmetric with positive eigenvalues it is positive definite and invertible.
+\end{proof}
+
+\begin{theorem}[Geometric convergence and closed form of label propagation]
+\label{thm:fixedpoint}
+Under the hypotheses of Theorem~\ref{thm:spectrum}, fix $\alpha\in(0,1)$, let
+$F_0$ be the one-hot seed (labels on annotated cells, zero elsewhere), and run the
+iteration
+\begin{equation}
+\label{eq:iter}
+F^{(t+1)}=\alpha\,S\,F^{(t)}+(1-\alpha)\,F_0,\qquad F^{(0)}=F_0.
+\end{equation}
+Then for every initialisation the iterates converge to the unique fixed point
+\begin{equation}
+\label{eq:closedform}
+F^\star=(1-\alpha)\,(I-\alpha S)^{-1}F_0,
+\end{equation}
+with the geometric error bound
+$\|F^{(t)}-F^\star\|_F\le(\alpha)^{t}\,\|F^{(0)}-F^\star\|_F$. Moreover $F^\star$
+is the unique minimiser of the normalised graph-regularised energy
+\begin{equation}
+\label{eq:zhouenergy}
+Q(F)=\tfrac12\,\operatorname{Tr}\!\big(F^\top(I-S)F\big)
++\tfrac{1-\alpha}{2\alpha}\,\|F-F_0\|_F^2 .
+\end{equation}
+\end{theorem}
+
+\begin{proof}
+\emph{Fixed point.} A fixed point $F^\star$ of \eqref{eq:iter} satisfies
+$F^\star=\alpha S F^\star+(1-\alpha)F_0$, i.e.\ $(I-\alpha S)F^\star=(1-\alpha)F_0$.
+By Theorem~\ref{thm:spectrum} $I-\alpha S$ is invertible, so the unique fixed
+point is $F^\star=(1-\alpha)(I-\alpha S)^{-1}F_0$, which is \eqref{eq:closedform}.
+
+\emph{Geometric convergence.} Subtract the fixed-point relation from
+\eqref{eq:iter}:
+\[
+F^{(t+1)}-F^\star=\alpha S\big(F^{(t)}-F^\star\big).
+\]
+Iterating, $F^{(t)}-F^\star=(\alpha S)^{t}\big(F^{(0)}-F^\star\big)$. Taking
+Frobenius norms and using submultiplicativity with the spectral norm,
+$\|F^{(t)}-F^\star\|_F\le\|(\alpha S)^t\|_2\,\|F^{(0)}-F^\star\|_F
+=\alpha^{t}\,\|S\|_2^{t}\,\|F^{(0)}-F^\star\|_F$. Since $S$ is symmetric with
+eigenvalues in $[-1,1]$ (Theorem~\ref{thm:spectrum}), $\|S\|_2=\max|\lambda|\le1$,
+so $\|F^{(t)}-F^\star\|_F\le\alpha^{t}\|F^{(0)}-F^\star\|_F$. As $\alpha\in(0,1)$,
+$\alpha^{t}\to0$, giving convergence from any initialisation at the geometric rate
+$\alpha$; the finitely-many ($30$) iterations the code runs therefore approximate
+$F^\star$ to error $\le\alpha^{30}$ of the initial gap.
+
+\emph{Variational characterisation.} Expand $Q$ in \eqref{eq:zhouenergy} using
+$I-S\succeq0$ (Theorem~\ref{thm:spectrum}); it is a sum of two convex quadratics,
+strictly convex because the second term has Hessian
+$\tfrac{1-\alpha}{\alpha}I\succ0$. Its gradient is
+\[
+\nabla_F Q=(I-S)F+\tfrac{1-\alpha}{\alpha}(F-F_0).
+\]
+Setting $\nabla_F Q=0$ and multiplying through by $\tfrac{\alpha}{1}$ gives
+$\alpha(I-S)F+(1-\alpha)(F-F_0)=0$, i.e.\ $\big(\alpha I-\alpha S+(1-\alpha)I\big)F
+=(1-\alpha)F_0$, which simplifies to $(I-\alpha S)F=(1-\alpha)F_0$. This is
+exactly the fixed-point equation, so its unique solution $F^\star$ of
+\eqref{eq:closedform} is the unique minimiser of $Q$. Hence the deterministic
+power iteration the code runs converges to the unique minimiser of a normalised
+Dirichlet-plus-fidelity energy, the normalised counterpart of
+\eqref{eq:objective}.
+\end{proof}
+
+Theorem~\ref{thm:fixedpoint} certifies that the $30$-step, $\alpha=0.9$ diffusion
+reported in Methods is a faithful, geometrically-convergent surrogate for the
+closed-form estimator; it is the propagation step whose held-out accuracy and
+rare-state recall appear in Table~\ref{tab:main} and Fig.~\ref{fig:forecast}a,b.
+The active-sampling policy of Fig.~\ref{fig:forecast}c then uses the entropy of
+this same forecast as its uncertainty signal, combined additively (after
+$z$-scoring) with the inverse local density that flags the low-density pockets
+where, by Corollary~\ref{cor:nonident}, smoothing alone is uninformative.
+
+\subsection{Extended data}
+\label{sec:extended}
+Table~\ref{tab:active} reports the active-sampling comparison in full, including the rare-query
+composition that mechanistically explains the rare-recall lift of Fig.~\ref{fig:forecast}c, and
+Table~\ref{tab:config} transcribes the run configuration and provenance that fix the benchmark.
+All entries are transcribed verbatim from \texttt{results/summary.json}; no value is recomputed here.
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Extended data: topology-aware versus random active sampling.} Rare-state recall on
+the still-unlabelled cells after spending a fixed query budget of \texttt{active\_budget}$=\num{60}$
+annotations, and the fraction of queried cells that were genuinely rare (rare-query rate), for the
+topology-aware policy (uncertainty $\times$ inverse local density) and the uniform-random baseline.
+Mean $\pm$ \SI{95}{\percent} CI over $n=\num{5}$ seeds; the rare base rate is \SI{4}{\percent}. The
+final column is the policy-minus-random difference. Best value per column in \textbf{bold}.
+Transcribed from \texttt{results/summary.json} (\texttt{active\_sampling}).}
+\label{tab:active}
+\begin{tabular}{l S[table-format=1.4]@{\,$\pm$\,}S[table-format=1.4] S[table-format=1.4]@{\,$\pm$\,}S[table-format=1.4]}
+\toprule
+Policy & \multicolumn{2}{c}{Rare-state recall $\uparrow$} & \multicolumn{2}{c}{Rare-query rate $\uparrow$}\\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}
+ & {mean} & {CI} & {mean} & {CI}\\
+\midrule
+Topology-aware & \bfseries 0.3556 & 0.1597 & \bfseries 0.3667 & 0.0693\\
+Uniform random & 0.0247 & 0.0285 & 0.0300 & 0.0160\\
+\midrule
+\emph{Difference} & 0.3309 & {--} & 0.3367 & {--}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[t]
+\centering
+\caption{\textbf{Extended data: benchmark configuration, integrity gates and provenance.}
+Full-scale run parameters, the three integrity checks asserted at build time, and the recorded
+provenance. Transcribed verbatim from the \texttt{config}, \texttt{integrity} and
+\texttt{provenance} blocks of \texttt{results/summary.json}; the Betti-0 component curve is constant
+at $1$ over $k\in\{2,4,8,16,32\}$.}
+\label{tab:config}
+\begin{tabular}{l l}
+\toprule
+Field & Value\\
+\midrule
+Cells $/$ features & \num{3000} $/$ \num{16}\\
+Branches (states incl.\ rare) & \num{3} ($\num{4}$ states)\\
+Donors $/$ batches $/$ perturbations & \num{8} $/$ \num{4} $/$ \num{5}\\
+Noise s.d.\ $/$ rare fraction & \num{0.7} $/$ \num{0.04}\\
+$k$ $/$ label fraction & \num{20} $/$ \num{0.03}\\
+Active budget $/$ seeds & \num{60} $/$ \num{5}\\
+Splits & donor, batch, time, perturbation\\
+\midrule
+Donor split leakage-free & true\\
+Betti-0 monotone in $k$ & true\\
+Rare state present & true\\
+\midrule
+Master seed & \num{0}\\
+Python $/$ NumPy $/$ SciPy & \texttt{3.13.12} $/$ \texttt{2.4.3} $/$ \texttt{1.17.1}\\
+NetworkX $/$ scikit-learn & \texttt{3.6.1} $/$ \texttt{1.8.0}\\
+Platform & \texttt{macOS-arm64 (Mach-O)}\\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Discussion}
 Within a controlled synthetic benchmark, conditioning single-cell forecasts on the connectivity of
@@ -257,7 +656,7 @@ misses. A topology-aware active-sampling policy compounds the rare-state benefit
 annotation budget toward the sparse manifold pockets where rare cells reside. These results are
 consistent with the long-standing intuition behind graph-based semi-supervised learning
 \cite{zhou2004local,zhu2002labelprop} and with the central role of the $k$NN graph in single-cell
-analysis \cite{wolf2018scanpy,haghverdi2016diffusion}.
+analysis \cite{wolf2018scanpy,haghverdi2016diffusion,saelens2019trajectory,luecken2019bestpractices}.
 
 The gains are real but should not be oversold, and two boundaries deserve emphasis. First, the
 accuracy improvement is modest and comes with a measurable calibration cost; the headline
@@ -355,6 +754,21 @@ contains no rare cells, so a split is never spuriously penalised). All metrics a
 seeds and reported with $95\%$ confidence intervals ($1.96\,\text{s.e.}$). All computation is CPU-only
 (NumPy, SciPy, scikit-learn, NetworkX, Matplotlib); a GPU build is a drop-in but not required.
 
+\paragraph{Experimental design and statistics.}
+Each of the four split protocols is evaluated over the same $n_\text{seeds}=\num{5}$ master seeds
+(seed $0$ controls lineage generation, annotation and the random query baseline), giving paired
+graph-smoothed and $k$NN measurements per seed and split. Point estimates are seed means; dispersion
+is the sample standard deviation $s$ with $\text{ddof}=1$, and the reported uncertainty is the
+\SI{95}{\percent} normal-approximation confidence interval $1.96\,s/\sqrt{n}$ that supplies every
+error bar in Figs.~\ref{fig:forecast} and the $\pm$ columns of Tables~\ref{tab:main}
+and~\ref{tab:active}. We deliberately do not claim statistical significance on the per-split
+rare-recall estimates: with $\sim$\SI{4}{\percent} rare cells the per-group rare counts are small,
+the seed-level intervals are correspondingly wide (up to $\pm\num{0.3358}$ on the perturbation
+split, Table~\ref{tab:main}), and the appropriate reading is the consistent direction of effect
+rather than a thresholded $p$-value. Three integrity gates are asserted before any metric is
+recorded (Table~\ref{tab:config}): grouping splits are leakage-free, the rare state is present, and
+the Betti-0 component count is monotone non-increasing in $k$ (Proposition~\ref{prop:betti}).
+
 \paragraph{Reproducibility.}
 The full-scale run is launched with the command \texttt{scripts/run.py} on
 \texttt{configs/full.yaml} writing to \texttt{results/}; the file \texttt{summary.json} is the single
@@ -379,6 +793,11 @@ manuscript.
 
 \section*{Competing interests}
 The author declares no competing interests.
+
+\section*{Acknowledgements}
+The author received no specific funding for this work and thanks the maintainers of the open-source
+scientific Python ecosystem (NumPy, SciPy, scikit-learn, NetworkX and Matplotlib) on which the
+reference implementation is built.
 
 \begin{thebibliography}{99}
 \sloppy

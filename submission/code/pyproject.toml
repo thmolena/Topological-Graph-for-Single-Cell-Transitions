@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "topocell"
 version = "0.1.0"
 description = "Topological Graph RL for Single-Cell State Transition and Perturbation Forecasting"
-readme = "README.md"
+readme = { text = "Topological Graph RL for Single-Cell State Transition and Perturbation Forecasting", content-type = "text/plain" }
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "Molena Huynh" }]

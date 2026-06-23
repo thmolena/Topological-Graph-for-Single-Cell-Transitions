@@ -3,533 +3,601 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Topological Graph RL for Single-Cell Transitions</title>
-<meta name="description" content="Forecasting single-cell state transitions via label propagation on a kNN cell graph, with topology-aware active sampling for rare states. An interactive in-browser demonstration that executes locally.">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body)"></script>
+<title>Graph-structure-aware label propagation for single-cell state forecasting</title>
+<meta name="description" content="Graph-structure-aware label propagation and topology-aware active sampling for few-label single-cell state forecasting and rare-state recovery under donor, batch, time and perturbation shift. A controlled, fully reproducible synthetic benchmark with proven guarantees and an interactive in-browser illustration.">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+  onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false},{left:'\\[',right:'\\]',display:true},{left:'\\(',right:'\\)',display:false}],throwOnError:false});"></script>
 <style>
   :root{
     --bg:#fbfcfe; --panel:#ffffff; --ink:#10151c; --muted:#5b6675; --line:#e6eaf0;
-    --accent:#76b900; --accent2:#1f6feb; --accent-d:#5a8f00; --code:#0d1117;
+    --accent:#1A4E8A; --accent2:#1f6feb; --accent-d:#143c6b; --good:#1f7a3d; --warn:#9a5b00;
+    --code:#0d1117; --codeink:#e6edf3;
     --shadow:0 1px 2px rgba(16,21,28,.06),0 8px 24px rgba(16,21,28,.06);
   }
   *{box-sizing:border-box}
   html{scroll-behavior:smooth}
   body{margin:0;background:var(--bg);color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
-    line-height:1.6;-webkit-font-smoothing:antialiased}
+    line-height:1.62;-webkit-font-smoothing:antialiased}
   a{color:var(--accent2);text-decoration:none}
   a:hover{text-decoration:underline}
   code,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-  nav{position:sticky;top:0;z-index:50;background:rgba(251,252,254,.85);
+  nav{position:sticky;top:0;z-index:50;background:rgba(251,252,254,.88);
     backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
-  nav .wrap{max-width:1040px;margin:0 auto;padding:11px 20px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
-  nav .brand{font-weight:700;letter-spacing:-.01em;margin-right:auto}
-  nav .brand .p{color:var(--accent-d)}
-  nav a{color:var(--muted);font-size:14px;font-weight:500}
+  nav .wrap{max-width:1080px;margin:0 auto;padding:11px 22px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  nav .brand{font-weight:700;letter-spacing:-.01em;margin-right:auto;color:var(--ink)}
+  nav .brand .p{color:var(--accent)}
+  nav a{color:var(--muted);font-size:13.5px;font-weight:500}
   nav a:hover{color:var(--ink);text-decoration:none}
-  .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
-  header.hero{padding:64px 20px 40px;text-align:center;background:
-    radial-gradient(1200px 400px at 50% -120px,rgba(118,185,0,.10),transparent),
-    radial-gradient(900px 360px at 80% -60px,rgba(31,111,235,.08),transparent)}
-  header.hero h1{font-size:clamp(28px,4.6vw,46px);line-height:1.1;letter-spacing:-.02em;margin:.2em auto;max-width:15ch}
-  header.hero .sub{color:var(--muted);font-size:clamp(15px,2vw,19px);max-width:62ch;margin:0 auto 8px}
-  .tag{display:inline-block;font-size:12px;font-weight:600;color:var(--accent-d);
-    background:rgba(118,185,0,.12);border:1px solid rgba(118,185,0,.3);border-radius:999px;padding:4px 12px;margin-bottom:14px}
-  .chips{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin:26px 0 10px}
-  .chip{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 16px;box-shadow:var(--shadow);min-width:150px}
-  .chip b{display:block;font-size:21px;color:var(--accent-d);letter-spacing:-.01em}
-  .chip span{font-size:12.5px;color:var(--muted)}
-  .cta{margin-top:22px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
-  .btn{display:inline-block;padding:10px 18px;border-radius:10px;font-weight:600;font-size:14px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
-  .btn.primary{background:var(--accent);border-color:var(--accent-d);color:#10240a}
-  .btn:hover{text-decoration:none;transform:translateY(-1px)}
-  section{padding:46px 0;border-top:1px solid var(--line)}
-  section h2{font-size:26px;letter-spacing:-.01em;margin:0 0 6px}
-  section .lead{color:var(--muted);max-width:70ch;margin:0 0 22px}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
-  .card h3{margin:.1em 0 .4em;font-size:16px}
-  .card p{margin:.2em 0;color:var(--muted);font-size:14.5px}
-  .pipe{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;font-size:13.5px}
-  .pipe .step{flex:1;min-width:150px;background:#f6f8fb;border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-  .pipe .step b{color:var(--accent-d)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px}
+  header.hero{padding:62px 22px 38px;text-align:center;background:
+    radial-gradient(1200px 420px at 50% -130px,rgba(26,78,138,.10),transparent),
+    radial-gradient(900px 360px at 82% -60px,rgba(31,111,235,.07),transparent)}
+  header.hero h1{font-size:clamp(26px,4.2vw,42px);line-height:1.13;letter-spacing:-.02em;margin:.2em auto;max-width:24ch}
+  header.hero .sub{color:var(--muted);font-size:clamp(15px,1.9vw,18px);max-width:74ch;margin:0 auto 8px}
+  .tag{display:inline-block;font-size:12px;font-weight:600;color:var(--accent);
+    background:rgba(26,78,138,.10);border:1px solid rgba(26,78,138,.28);border-radius:999px;padding:4px 12px;margin-bottom:14px;letter-spacing:.02em}
+  .authorline{color:var(--muted);font-size:14px;margin-top:18px}
+  .authorline b{color:var(--ink)}
+  .chips{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:22px 0 6px}
+  .chip{display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:150px;box-shadow:var(--shadow)}
+  .chip .n{font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-.01em}
+  .chip .l{font-size:12px;color:var(--muted);text-align:center;line-height:1.3}
+  section{padding:34px 0;border-top:1px solid var(--line)}
+  section:first-of-type{border-top:none}
+  h2{font-size:clamp(20px,2.6vw,27px);letter-spacing:-.01em;margin:.1em 0 .5em;color:var(--accent-d)}
+  h2 .num{color:var(--accent);font-weight:700;margin-right:.45em;font-variant-numeric:tabular-nums}
+  h3{font-size:16.5px;margin:1.4em 0 .4em;color:var(--ink)}
+  p{margin:.55em 0}
+  .lead{font-size:17px}
+  ul,ol{margin:.5em 0 .8em;padding-left:1.3em}
+  li{margin:.36em 0}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);margin:16px 0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+  .thm{border-left:3px solid var(--accent);background:#f6f9fd;border-radius:0 10px 10px 0;padding:14px 18px;margin:14px 0}
+  .thm .head{font-weight:700;color:var(--accent-d);font-size:14.5px;letter-spacing:.01em}
+  .thm .interp{color:var(--muted);font-size:14px;margin-top:7px;font-style:italic}
+  .meta{color:var(--muted);font-size:13.5px}
+  table.bk{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+  table.bk caption{caption-side:top;text-align:left;font-size:13px;color:var(--muted);margin-bottom:8px}
+  table.bk th,table.bk td{padding:7px 10px;text-align:right}
+  table.bk th:first-child,table.bk td:first-child,
+  table.bk th:nth-child(2),table.bk td:nth-child(2){text-align:left}
+  table.bk thead th{border-bottom:1.5px solid var(--ink);font-weight:600}
+  table.bk .toprule td{border-top:1.8px solid var(--ink)}
+  table.bk tbody tr.splitgap td{padding-top:13px}
+  table.bk td.win{font-weight:700;color:var(--accent-d)}
+  table.bk tfoot td{border-top:1.5px solid var(--ink);font-weight:600}
+  table.bk .grp{color:var(--muted);font-size:12px;font-weight:400}
+  .scroll{overflow-x:auto}
+  pre{background:var(--code);color:var(--codeink);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13px;line-height:1.55;box-shadow:var(--shadow)}
+  pre .c{color:#8b949e}
+  pre .k{color:#79c0ff}
+  code.inl{background:rgba(26,78,138,.08);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.92em}
+  .note{font-size:13.5px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;background:#fcfdff}
+  .limit{border-left:3px solid var(--warn);background:#fffaf2;border-radius:0 10px 10px 0;padding:12px 16px;margin:12px 0;font-size:14.5px}
   /* demo */
-  .demo{display:grid;grid-template-columns:300px 1fr;gap:20px}
-  .controls label{display:block;font-size:13px;color:var(--muted);margin:14px 0 4px;font-weight:600}
-  .controls input[type=range]{width:100%}
-  .controls select,.controls button{width:100%;padding:9px;border-radius:9px;border:1px solid var(--line);background:var(--panel);font-size:14px}
-  .controls button{cursor:pointer;font-weight:600}
-  .controls .go{background:var(--accent);border-color:var(--accent-d);color:#10240a;margin-top:14px}
-  .controls .alt{background:var(--accent2);border-color:#155bb5;color:#fff;margin-top:10px}
-  .stage{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  canvas{width:100%;background:#fdfefe;border:1px solid var(--line);border-radius:12px}
-  .readout{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
-  .ro{background:#f6f8fb;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-  .ro b{display:block;font-size:22px;letter-spacing:-.01em}
-  .ro.good b{color:var(--accent-d)} .ro.warn b{color:#b3791b}
-  .ro span{font-size:12px;color:var(--muted)}
-  table{border-collapse:collapse;width:100%;font-size:14px}
-  th,td{border-bottom:1px solid var(--line);padding:9px 10px;text-align:left}
-  th{color:var(--muted);font-weight:600;font-size:13px}
-  tr.best td{background:rgba(118,185,0,.08);font-weight:600}
-  .note{font-size:13px;color:var(--muted)}
-  footer{padding:40px 0 70px;border-top:1px solid var(--line);text-align:center;color:var(--muted);font-size:14px}
-  .klink{display:inline-flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0}
-  pre{background:var(--code);color:#e6edf3;border-radius:12px;padding:14px 16px;overflow:auto;font-size:13px}
-  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:8px}
-  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-  @media(max-width:820px){.demo{grid-template-columns:1fr}.grid2,.grid3{grid-template-columns:1fr}.stage{grid-template-columns:1fr}}
+  .demo-wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:start}
+  @media(max-width:900px){.demo-wrap{grid-template-columns:1fr}}
+  #cellcanvas{width:100%;height:auto;display:block;background:#0d1726;border-radius:12px;border:1px solid #1d2c44}
+  .controls label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
+  .controls input[type=range]{width:100%;accent-color:var(--accent)}
+  .seg{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
+  .seg button{flex:1 1 auto;font:inherit;font-size:12.5px;font-weight:600;padding:6px 8px;border-radius:8px;
+    border:1px solid var(--line);background:#fff;color:var(--muted);cursor:pointer}
+  .seg button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .readout{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .stat .lab{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+  .stat .v{font-size:20px;font-weight:700;color:var(--accent-d);font-variant-numeric:tabular-nums}
+  .stat .d{font-size:12px;color:var(--good);font-variant-numeric:tabular-nums}
+  .bar{height:9px;border-radius:6px;background:#eef1f6;overflow:hidden;margin-top:6px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:6px}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+  footer{padding:40px 22px 60px;color:var(--muted);font-size:13.5px;text-align:center;border-top:1px solid var(--line)}
+  .kbd-tag{font-size:11px;color:var(--muted)}
+  sup a{font-size:.8em}
 </style>
 </head>
 <body>
+
 <nav><div class="wrap">
-  <span class="brand"><span class="p">◆</span> Topological Graph RL for Single-Cell Transitions</span>
-  <a href="#overview">Overview</a><a href="#tutorial">Tutorial</a><a href="#method">Method</a>
-  <a href="#mathematics">Mathematics</a><a href="#demo">Demo</a><a href="#results">Results</a>
-  <a href="#significance">Significance</a><a href="#theory">Theory</a><a href="#conclusion">Conclusion</a><a href="#code">Paper &amp; Code</a>
-  <a href="https://github.com/thmolena">GitHub</a>
+  <span class="brand">Topo<span class="p">Cell</span></span>
+  <a href="#motivation">Motivation</a>
+  <a href="#prelim">Preliminaries</a>
+  <a href="#problem">Formulation</a>
+  <a href="#contrib">Contributions</a>
+  <a href="#theory">Guarantees</a>
+  <a href="#empirical">Validation</a>
+  <a href="#demo">Demo</a>
+  <a href="#repro">Reproducibility</a>
 </div></nav>
 
 <header class="hero">
   <div class="wrap">
-    <span class="tag">graph-structure-aware learning · active sampling of single-cell transitions · calibrated and audited reproducibility</span>
-    <h1>Topological Graph RL for Single-Cell Transitions</h1>
-    <p class="sub">We forecast a cell's <b>subsequent state</b> by propagating a small set of labels over the
-      <b>kNN cell graph</b>, and we employ a <b>topology-aware active-sampling</b> policy to recover a
-      <b>rare</b> state — held out by donor, batch, pseudotime, and perturbation condition.</p>
+    <span class="tag">Graph-based semi-supervised learning &middot; Single-cell forecasting under distribution shift</span>
+    <h1>Graph-structure-aware label propagation and active sampling for few-label single-cell state forecasting and rare-state recovery</h1>
+    <p class="sub">A controlled, fully seeded benchmark that isolates the value of cell-graph connectivity for forecasting cell state across donor, batch, time and perturbation shift &mdash; with proven variational and spectral guarantees, an honestly reported calibration cost, and an active-sampling policy that recovers a rare state a point classifier almost entirely misses.</p>
     <div class="chips">
-      <div class="chip"><b id="c1">+0.0595</b><span>mean accuracy gain over the point-classifier baseline</span></div>
-      <div class="chip"><b id="c2">0.3556</b><span>rare-state recall under topology-aware active sampling</span></div>
-      <div class="chip"><b id="c3">4</b><span>leakage-controlled split protocols</span></div>
+      <div class="chip"><span class="n">+0.0595</span><span class="l">mean held-out accuracy gain<br>over matched <em>k</em>NN (4 splits)</span></div>
+      <div class="chip"><span class="n">0.3556</span><span class="l">rare-state recall via topology-aware<br>sampling vs 0.0247 random</span></div>
+      <div class="chip"><span class="n">4</span><span class="l">leakage-checked transfer<br>protocols, 5 seeds</span></div>
+      <div class="chip"><span class="n">100%</span><span class="l">numbers transcribed from<br>seeded <code class="inl">summary.json</code></span></div>
     </div>
-    <div class="cta">
-      <a class="btn primary" href="#demo">▶ Run the interactive demonstration</a>
-      <a class="btn" href="#code">Paper &amp; code</a>
-    </div>
+    <p class="authorline"><b>Molena Huynh</b> &nbsp;&middot;&nbsp; reference implementation <code class="inl">topocell 0.1.0</code> (CPU, pip-installable) &nbsp;&middot;&nbsp; all data synthetic and seeded</p>
   </div>
 </header>
 
-<section id="overview"><div class="wrap">
-  <h2>The problem</h2>
-  <p class="lead">A single-cell dataset constitutes a population of cells distributed within an expression
-    embedding. The biological phenomena of primary interest — differentiation, treatment response, transient
-    progenitor states — manifest as <b>transitions</b> between cell states along the data manifold. Exhaustive
-    annotation of every cell is infeasible, and the <b>rare</b> states (a few percent of cells) are precisely those
-    of greatest consequence and those that a point classifier systematically fails to recover. We accordingly
-    represent the cells as a <b>graph</b> and allow labels to propagate along its edges.</p>
-  <div class="grid3">
-    <div class="card"><h3>Rationale for the graph</h3><p>When few cells are annotated, a plain kNN classifier operates over sparse, unreliable neighbourhoods. Diffusing labels through unlabeled cells on the kNN graph borrows statistical strength across the manifold.</p></div>
-    <div class="card"><h3>Rationale for topology</h3><p>The number of connected components of the kNN graph (Betti-0) decreases monotonically as <i>k</i> increases — a graph invariant that indicates how many states a population resolves and where the sparse rare pockets reside.</p></div>
-    <div class="card"><h3>Rationale for the splits</h3><p>A forecaster must transfer across <b>donors</b>, <b>batches</b>, <b>time</b>, and <b>perturbations</b>. Each split holds one such group out and verifies the absence of leakage — the analogue of family-held-out transfer.</p></div>
-  </div>
-</div></section>
+<main class="wrap">
 
-<section id="tutorial"><div class="wrap">
-  <h2>Tutorial and primer</h2>
-  <p class="lead">Single-cell measurements may be regarded as points on a biological manifold: similar cells are
-    neighbours, rare states occupy sparse regions, and transitions follow the graph structure along pseudotime. This
-    work adopts the kNN graph as its central computational object and forecasts unlabeled cell states by diffusing a
-    small set of labels through that graph.</p>
-  <div class="grid3">
-    <div class="card"><h3>Input</h3><p>A seeded branching lineage comprising cell embeddings, pseudotime, donor, batch, and perturbation annotations, together with a deliberately rare late-branch state.</p></div>
-    <div class="card"><h3>Central idea</h3><p>Construct a symmetric kNN graph, track the Betti-0 connected-component count as \(k\) varies, and apply graph-smoothed label propagation in the scarce-label regime.</p></div>
-    <div class="card"><h3>Output</h3><p>Subsequent-state forecasts together with a topology-aware active-sampling policy that selects which unlabeled cells to annotate in order to recover the rare state.</p></div>
-  </div>
-  <div class="grid2" style="margin-top:16px">
-    <div class="card"><h3>Statistical design</h3><p>The benchmark holds out donor, batch, time, and perturbation splits; reports accuracy, ECE, and rare-state recall; and verifies the absence of leakage alongside monotone Betti-0 behaviour.</p></div>
-    <div class="card"><h3>Indication of contribution</h3><p>Graph smoothing raises the mean held-out accuracy from 0.5992 to 0.6587, while topology-aware active sampling attains 0.3556 rare-state recall, in contrast to 0.0247 under uniform random querying.</p></div>
-  </div>
-</div></section>
-
-<section id="method"><div class="wrap">
-  <h2>Method</h2>
-  <p class="lead">A graph-smoothed forecaster and a matched point-classifier baseline feed a single audited
-    evaluation; an active-sampling policy then determines which unlabeled cells to annotate next in order to recover
-    the rare state.</p>
-  <div class="pipe">
-    <div class="step"><b>1 · Cell graph</b><br>a kNN graph over the expression embedding, with Betti-0 (component count) versus <i>k</i> serving as a topological descriptor</div>
-    <div class="step"><b>2 · Forecast</b><br>label propagation \(F \leftarrow \alpha S F + (1-\alpha)F_0\) compared against a point-classifier kNN baseline</div>
-    <div class="step"><b>3 · Active sampling</b><br>cells scored by uncertainty × inverse local density to query the sparse rare pockets</div>
-    <div class="step"><b>4 · Audited metrics</b><br>accuracy, ECE, and rare-state recall under four leakage-controlled splits</div>
-  </div>
-</div></section>
-
-<section id="mathematics"><div class="wrap">
-  <h2>Mathematics — the label-propagation objective and its uniqueness theorem</h2>
-  <p class="lead">The forecaster is not a heuristic; it is the exact minimizer of a graph-regularized energy. This
-    formulation constitutes the formal foundation underlying the demonstration and the results table.</p>
-
-  <h3 style="margin-top:8px">Graph-regularized label energy</h3>
-  <p class="note">Let \(L=D-A\) be the combinatorial Laplacian of the symmetric kNN graph, \(Y\) the clamped
-    one-hot seed labels (zero on unlabeled cells), and \(M\) the diagonal indicator of labeled cells. The forecaster
-    minimizes a smoothness-plus-fidelity energy:</p>
-  <div class="card" style="overflow:auto">
-    <p>$$\mathcal E(F)=\tfrac12\,\mathrm{Tr}\!\big(F^\top L F\big)+\tfrac{\mu}{2}\,\big\|M^{1/2}(F-Y)\big\|_F^2 .$$</p>
-  </div>
-
-  <h3 style="margin-top:18px">Theorem — unique graph-regularised extension of labels</h3>
-  <div class="card">
-    <p><b>Claim.</b> If every connected component of the graph contains at least one labeled cell, then \(\mathcal E\)
-      is strictly convex with the unique minimizer</p>
-    <p>$$F^\star=\big(L+\mu M\big)^{-1}\mu M Y .$$</p>
-    <p class="note"><b>Proof sketch.</b> \(\nabla^2\mathcal E = L+\mu M\). Here \(L\succeq 0\) and \(\mu M\succeq 0\),
-      so the Hessian is PSD; on each component \(x^\top L x=0\) forces \(x\) constant, and \(\mu M\) then contributes
-      \(\mu\sum_{i\,\text{labeled}}x_i^2>0\) unless \(x=0\). Hence \(L+\mu M\succ 0\), the energy is strictly convex,
-      and \(\nabla\mathcal E=0\) gives the closed form. The normalized iteration \(F\leftarrow\alpha S F+(1-\alpha)F_0\)
-      converges to the same fixed point. ∎</p>
-  </div>
-  <p class="note" style="margin-top:10px">The theorem likewise delineates a failure mode candidly: a component that lacks any <b>labeled</b> cell remains unidentified (its block of \(M\) vanishes) — a circumstance that directly motivates the active-sampling
-    policy presented below.</p>
-
-  <h3 style="margin-top:18px">Active sampling and the audited metrics</h3>
-  <p class="note">The acquisition score targets uncertain cells situated in sparse (rare) pockets, and the evaluation comprises three
-    exact quantities:</p>
-  <div class="card" style="overflow:auto">
-    <p>$$a(i)=\underbrace{\big(1-\max_c F^\star_{ic}\big)}_{\text{margin uncertainty}}\times\underbrace{\rho(i)^{-1}}_{\text{inverse local density}},\qquad
-       \mathrm{recall}_{\text{rare}}=\frac{\mathrm{TP}_{\text{rare}}}{\mathrm{TP}_{\text{rare}}+\mathrm{FN}_{\text{rare}}} .$$</p>
-  </div>
-  <p class="note">Accuracy and ECE follow their standard definitions; rare-state recall isolates performance on the
-    few-percent population that point classifiers fail to recover.</p>
-</div></section>
-
-<section id="demo"><div class="wrap">
-  <h2>Interactive demonstration — executes entirely within the browser</h2>
-  <p class="lead">Generate a synthetic <b>branching lineage</b>, construct a kNN graph interactively via the
-    <b>k</b> control, and allow <b>label propagation</b> to forecast the unlabeled cells from a small set of seeds.
-    Activating <b>Active sample</b> then exhibits the topology-aware policy selecting the subsequent cells to
-    annotate — the identical algorithm implemented in the Python package, executed entirely in-browser, with every value computed at runtime.</p>
-  <div class="demo">
-    <div class="controls card">
-      <label>Cells: <span id="nlbl">160</span></label>
-      <input type="range" id="n" min="80" max="260" value="160">
-      <label>Neighbours k: <span id="klbl">8</span></label>
-      <input type="range" id="k" min="2" max="20" value="8">
-      <label>Noise: <span id="noiselbl">0.45</span></label>
-      <input type="range" id="noise" min="20" max="90" value="45">
-      <label>Annotated seeds: <span id="seedlbl">8</span></label>
-      <input type="range" id="seeds" min="4" max="30" value="8">
-      <button id="gen">↻ New lineage</button>
-      <button class="go" id="prop">▶ Propagate labels</button>
-      <button class="alt" id="active">✚ Active sample (recover rare)</button>
-      <p class="note" style="margin-top:14px">Cells are colored by <b>predicted</b> state; ✕ denotes an annotated seed; the rare state is rendered as a star. The right panel contrasts the ground-truth and predicted assignments.</p>
-    </div>
-    <div>
-      <div class="stage">
-        <div><canvas id="cells" width="420" height="340"></canvas>
-          <p class="note">The kNN graph and cells, colored by predicted state. Edges denote the propagation paths.</p></div>
-        <div><canvas id="truth" width="420" height="340"></canvas>
-          <p class="note">Ground-truth states. Red cross-hairs indicate the cells the policy would query next.</p></div>
-      </div>
-      <div class="legend" id="legend"></div>
-      <div class="readout">
-        <div class="ro high-quality"><b id="r-acc">–</b><span>graph-smoothed accuracy</span></div>
-        <div class="ro warn"><b id="r-base">–</b><span>point-classifier kNN accuracy</span></div>
-        <div class="ro"><b id="r-rare">–</b><span>rare-state recall (graph)</span></div>
-        <div class="ro"><b id="r-comp">–</b><span>connected components (Betti-0)</span></div>
-      </div>
-    </div>
-  </div>
-</div></section>
-
-<section id="results"><div class="wrap">
-  <h2>Results</h2>
-  <p class="lead">Full-scale configuration: 3000 cells, 16 features, 8 donors, 4 batches, 5 perturbation conditions,
-    a deliberately rare state (~4% of cells), <i>k</i>=20, 3% of the training pool annotated, and 5 random seeds —
-    <b>regenerated deterministically by the package</b> (never hand-edited). Values are transcribed exactly from the
-    generated <code>main_results.tex</code>.</p>
-  <table>
-    <thead><tr><th>split</th><th>method</th><th>accuracy</th><th>ECE</th><th>rare-state recall</th></tr></thead>
-    <tbody>
-      <tr class="best"><td>donor</td><td>graph-smoothed (ours)</td><td>0.7004</td><td>0.1247</td><td>0.1520</td></tr>
-      <tr><td>donor</td><td>baseline kNN</td><td>0.6550</td><td>0.1073</td><td>0.0000</td></tr>
-      <tr class="best"><td>batch</td><td>graph-smoothed (ours)</td><td>0.6995</td><td>0.1383</td><td>0.4618</td></tr>
-      <tr><td>batch</td><td>baseline kNN</td><td>0.6355</td><td>0.0905</td><td>0.0320</td></tr>
-      <tr class="best"><td>time</td><td>graph-smoothed (ours)</td><td>0.5474</td><td>0.1328</td><td>0.0000</td></tr>
-      <tr><td>time</td><td>baseline kNN</td><td>0.4574</td><td>0.0970</td><td>0.0000</td></tr>
-      <tr class="best"><td>perturbation</td><td>graph-smoothed (ours)</td><td>0.6875</td><td>0.1649</td><td>0.3393</td></tr>
-      <tr><td>perturbation</td><td>baseline kNN</td><td>0.6490</td><td>0.1184</td><td>0.0286</td></tr>
-    </tbody>
-  </table>
-  <p class="note" style="margin-top:12px">Principal findings: the graph-smoothed forecaster attains a mean held-out
-    accuracy of <b>0.6587</b>, in contrast to <b>0.5992</b> for the baseline (a mean gain of <b>+0.0595</b>); the
-    topology-aware active-sampling policy raises rare-state recall to <b>0.3556</b> (95% CI ±0.1597), in contrast to
-    <b>0.0247</b> (±0.0285) under uniform random querying at the same annotation budget. Graph propagation incurs a
-    modest calibration cost (a higher ECE) in exchange for the accuracy and rare-recall improvements — both quantities
-    are reported transparently rather than withheld. The labeled set is drawn exclusively from the training side of
-    each split, and the held-out group or timepoint is never annotated, a property asserted in the test suite.</p>
-</div></section>
-
-<section id="significance"><div class="wrap">
-  <h2>Statistical significance and the nature of the contribution</h2>
-  <p class="lead">The improvements are reported per split together with their attendant trade-offs, and the
-    contribution is framed as a methodological advance rather than a comparative ranking.</p>
+<!-- ============================ MOTIVATION ============================ -->
+<section id="motivation">
+  <h2><span class="num">1</span>Background and Motivation</h2>
+  <p class="lead">Single-cell measurements resolve continuous trajectories of differentiation, activation and treatment response. A recurring analysis goal is to <em>forecast</em> the state a cell or population will occupy under conditions not directly observed: a donor not yet profiled, a technical batch run later, a later point along a developmental trajectory, or an untested perturbation.</p>
+  <p>The data that support such forecasts share two structural features that together define the problem this work addresses.</p>
   <div class="grid2">
-    <div class="card">
-      <h3>Effect size, per split</h3>
-      <p>Graph smoothing raises the mean held-out accuracy from <b>0.5992</b> to <b>0.6587</b> (<b>+0.0595</b>). The
-        effect is most pronounced precisely where a point classifier degrades: under the <code>time</code> split
-        accuracy rises \(0.4574\to0.5474\), and under <code>batch</code> \(0.6355\to0.6995\) — transfer regimes in
-        which unlabeled neighbours convey the signal.</p>
+    <div class="panel">
+      <h3>Manifold concentration</h3>
+      <p>Cells do not occupy feature space uniformly; they concentrate near a low-dimensional manifold that is routinely approximated by a <em>k</em>-nearest-neighbour (<em>k</em>NN) graph before clustering, embedding or pseudotime inference. A point classifier that consumes features alone discards the neighbourhood geometry that this graph encodes.</p>
     </div>
-    <div class="card">
-      <h3>Rare-state recovery</h3>
-      <p>The principal result at the systems level: topology-aware active sampling attains rare-state recall
-        <b>0.3556</b>, in contrast to <b>0.0247</b> for random querying at the same annotation budget. Per split the
-        graph forecaster recovers the rare state at recall \(0.1520\) (donor), \(0.4618\) (batch), and \(0.3393\)
-        (perturbation), whereas the baseline records \(0.0000\), \(0.0320\), and \(0.0286\) respectively.</p>
-    </div>
-    <div class="card">
-      <h3>The transparent trade-off</h3>
-      <p>Graph propagation exchanges a modest degree of <b>calibration</b> for accuracy: ECE increases (for example,
-        \(0.1328\) under <code>time</code>) because diffusion sharpens decisions in low-evidence regions. We report
-        ECE alongside accuracy rather than suppressing it, and the <code>time</code> split exposes the limit — high
-        accuracy may coincide with zero rare recall when the rare pocket lies beyond the training distribution.</p>
-    </div>
-    <div class="card">
-      <h3>The contribution, stated precisely</h3>
-      <p>Neither a new assay nor a deeper network. The contribution comprises (i) formulating subsequent-state
-        forecasting as <b>graph diffusion with a uniqueness guarantee</b>, (ii) a <b>topology-aware active sampler</b>
-        that provably targets the unidentified components, and (iii) <b>four leakage-controlled transfer splits</b>
-        (donor, batch, time, perturbation) accompanied by an audited evaluation.</p>
+    <div class="panel">
+      <h3>Rarity of the decisive states</h3>
+      <p>The biologically decisive states &mdash; transient progenitors, treatment-resistant clones &mdash; are frequently rare. Classifiers trained to minimise average error tend to ignore them, and standard accuracy hides this failure. Recovering rare states with <em>calibrated</em> uncertainty is the open problem.</p>
     </div>
   </div>
-</div></section>
+  <p>Two long-studied levers respond to these features. Letting predictions <em>diffuse over the data graph</em> &mdash; graph-based semi-supervised learning by label propagation &mdash; lets a cell borrow statistical strength from its manifold neighbourhood. Choosing <em>which</em> cells to annotate &mdash; active learning &mdash; can be steered toward the sparse, uncertain regions where rare states live when informativeness is combined with a manifold-density signal.</p>
+  <p>The work does not claim a new algorithm. It isolates, under controlled and leakage-checked conditions, the value of <em>graph structure</em> for single-cell forecasting by holding the neighbourhood information fixed and toggling only whether the model diffuses over the graph. The open problem it targets directly is held-out generalization under covariate shift together with rare-state recall and the calibration cost that recovery incurs.</p>
+  <div class="note">All experiments run on a seeded synthetic branching lineage. This is a falsifiable sanity benchmark, not a biological dataset; that scope is stated explicitly throughout and bounds every claim below.</div>
+</section>
 
-<section id="theory"><div class="wrap">
-  <h2>Why label propagation succeeds — and why Betti-0 is monotone</h2>
-  <p class="lead">Label propagation is the normalized graph diffusion of Zhou et al. (2004). Given a
-    symmetric adjacency \(A\), degree \(D\), and \(S=D^{-1/2}AD^{-1/2}\), it iterates
-    \(F \leftarrow \alpha S F + (1-\alpha)F_0\) toward a fixed point that balances smoothness on the
-    cell graph against the clamped seed labels \(F_0\):</p>
-  <div class="card" style="overflow:auto">
-    <p>$$F^\star=(1-\alpha)\,(I-\alpha S)^{-1}F_0,\qquad
-      \hat y(i)=\arg\max_c F^\star_{ic}.$$</p>
-  </div>
-  <p class="note" style="margin-top:12px">The graph's <b>number of connected components</b> equals
-    the rank of \(H_0\) (Betti-0). Increasing \(k\) only <i>adds</i> edges, and the addition of an edge may
-    merge two components but never partition one — hence the component count is
-    <b>monotone non-increasing in \(k\)</b>. The package constructs the curve and a test asserts this
-    monotonicity on seeded data, establishing the topological descriptor as a verified quantity.</p>
-</div></section>
+<!-- ============================ PRELIMINARIES ============================ -->
+<section id="prelim">
+  <h2><span class="num">2</span>Mathematical Preliminaries</h2>
+  <p>Fix $n$ cells embedded in a feature space $\mathbb{R}^{d}$ (a stand-in for a PCA or latent embedding of expression). The objects below are exactly those the forecaster and its theory rely upon.</p>
 
-<section id="conclusion"><div class="wrap">
-  <h2>Conclusion and contribution map</h2>
-  <p class="lead">The work delivers a complete, reproducible graph-learning workflow for the scarce-label biological
-    regime: a synthetic data generator, leakage-controlled splits, topological descriptors, label propagation,
-    active sampling, audited results tables, and an interactive browser demonstration. The improvement is most
-    pronounced where annotation is scarce and rare states are of consequence.</p>
+  <h3>Cell-similarity graph, degree, Laplacian</h3>
+  <p>Let $A\in\mathbb{R}^{n\times n}$ be the symmetric adjacency of the <em>k</em>NN cell graph: $A=A^{\top}$, $A_{ij}\ge 0$, $A_{ii}=0$, and $A_{ij}>0$ iff cells $i,j$ are joined by an undirected edge. An edge $\{i,j\}$ is present under the either-direction convention iff $j$ is among the $k$ nearest neighbours of $i$ or $i$ is among the $k$ nearest neighbours of $j$. The degree is $d_i=\sum_j A_{ij}$, collected in $D=\operatorname{diag}(d_1,\dots,d_n)$, and the combinatorial graph Laplacian is
+  $$ L \;=\; D - A. $$
+  The <em>Betti-0 number</em> $\beta_0(A)$ is the number of connected components of the graph. In this benchmark it is monitored purely as a build sanity check.</p>
+
+  <h3>Dirichlet energy and the graph-smoothing operator</h3>
+  <p>The Laplacian quadratic form is the Dirichlet energy
+  $$ f^{\top} L f \;=\; \tfrac12\sum_{i,j} A_{ij}\,(f_i-f_j)^2 \;\ge\; 0, \qquad L \succeq 0, $$
+  which penalises label disagreement across edges. Label propagation diffuses one-hot seed labels over the graph using the symmetric normalisation $S=D^{-1/2}AD^{-1/2}$ and a clamping parameter $\alpha\in(0,1)$:
+  $$ F^{(t+1)} \;=\; \alpha\,S\,F^{(t)} + (1-\alpha)\,F_0, \qquad F^{(0)}=F_0, $$
+  run for a fixed number of power iterations. The implementation uses $\alpha=0.9$ and $30$ iterations; held-out cells are predicted from the row-normalised diffused scores, with the maximum class probability serving as the confidence used for calibration.</p>
+
+  <h3>Apples-to-apples <em>k</em>NN baseline</h3>
+  <p>The control is a plain <em>k</em>NN classifier in feature space, fitted on the <em>same</em> annotated cells with the <em>same</em> neighbourhood size $k$, i.e. identical neighbourhood information <em>without</em> diffusion. This isolates the diffusion step rather than the mere availability of neighbours.</p>
+
+  <h3>Metrics</h3>
   <div class="grid3">
-    <div class="card"><h3>Scientific contribution</h3><p>Relates topological graph structure, in particular Betti-0 as a function of \(k\), to single-cell state forecasting and rare-population recovery.</p></div>
-    <div class="card"><h3>Engineering contribution</h3><p>Implements seeded lineage generation, symmetric kNN graphs, graph diffusion, active sampling, split verification, and browser-side visualization.</p></div>
-    <div class="card"><h3>Practical contribution</h3><p>Directs costly annotations toward uncertain, low-density regions in which rare biological states are most readily overlooked.</p></div>
+    <div class="panel">
+      <h3 style="margin-top:0">Accuracy</h3>
+      <p class="meta">Fraction of held-out cells classified correctly: $\mathrm{Acc}=\tfrac{1}{|\mathcal{T}|}\sum_{i\in\mathcal{T}}\mathbf{1}[\hat y_i = y_i]$.</p>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Expected calibration error</h3>
+      <p class="meta">Population-weighted gap between mean confidence and empirical accuracy over ten bins, $\mathrm{ECE}=\sum_b \tfrac{|B_b|}{n}\,\bigl|\operatorname{acc}(B_b)-\operatorname{conf}(B_b)\bigr|$. Lower is better.</p>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Rare-state recall</h3>
+      <p class="meta">Fraction of true rare cells recovered, $\dfrac{|\{i:\hat y_i=r,\;y_i=r\}|}{|\{i:y_i=r\}|}$ for the rare class $r$, set to $1$ by convention when a test set contains no rare cells.</p>
+    </div>
   </div>
-</div></section>
+</section>
 
-<section id="code"><div class="wrap">
-  <h2>Paper &amp; code</h2>
-  <div class="klink">
-    <a class="btn" href="https://github.com/thmolena">↗ GitHub repository</a>
-    <a class="btn" href="code/">code/ — runnable package</a>
-    <a class="btn" href="#demo">Live demo</a>
+<!-- ============================ PROBLEM ============================ -->
+<section id="problem">
+  <h2><span class="num">3</span>Problem Formulation</h2>
+  <p>The task is a <em>transductive, few-label</em> single-cell state forecasting problem evaluated under covariate shift.</p>
+  <p><strong>Transductive few-label forecasting.</strong> Given the cell set with features $X\in\mathbb{R}^{n\times d}$ and metadata (branch/state, pseudotime, donor, batch, perturbation), only a small fraction $\rho=\texttt{label\_fraction}=0.03$ of the training pool is annotated, with a light stratification guaranteeing a few labels for each present state including the rare one. The model must predict the discrete state of held-out cells, mirroring how analysts annotate a handful of cells and propagate the rest. All cells (labelled and unlabelled) are available at fit time, so the setting is transductive.</p>
+  <p><strong>Covariate-shift evaluation protocol.</strong> Generalization is measured under four leakage-checked split protocols, each a distinct family of distribution shift:</p>
+  <ul>
+    <li><strong>Donor</strong> &mdash; hold out whole donors (biological replicate transfer).</li>
+    <li><strong>Batch</strong> &mdash; hold out whole batches (technical replicate transfer).</li>
+    <li><strong>Time</strong> &mdash; train on early pseudotime, test on late pseudotime (a forward-in-time extrapolation; the hardest protocol).</li>
+    <li><strong>Perturbation</strong> &mdash; hold out a whole condition (forecast an unseen perturbation).</li>
+  </ul>
+  <p>For the three grouping splits a programmatic check asserts that no held-out group appears in both train and test (a strict family-held-out no-leakage check); the time split has no grouping variable to leak. Donor, batch and perturbation labels are assigned independently of the biological branch, so a split is non-trivial: a donor spans multiple branches. Performance is read out as held-out accuracy, ECE and rare-state recall, aggregated over five master seeds with $95\%$ normal-approximation confidence intervals $1.96\,s/\sqrt{n}$.</p>
+</section>
+
+<!-- ============================ CONTRIBUTIONS ============================ -->
+<section id="contrib">
+  <h2><span class="num">4</span>Principal Contributions</h2>
+  <ol>
+    <li><strong>A controlled, leakage-checked benchmark that isolates graph structure.</strong> A seeded synthetic branching lineage ($n=3000$ cells, $16$ features, $8$ donors, $4$ batches, $5$ perturbations, a $\sim 4\%$ rare state) is paired with an apples-to-apples control in which the graph-smoothed forecaster and the <em>k</em>NN baseline see identical neighbourhood information and differ only in whether predictions diffuse over the graph.</li>
+    <li><strong>Consistent held-out accuracy gains under four shift protocols.</strong> Graph-smoothed label propagation improves held-out forecast accuracy on all four splits &mdash; by $0.0454$ (donor), $0.0640$ (batch), $0.0900$ (time) and $0.0385$ (perturbation), a mean gain of $0.0595$.</li>
+    <li><strong>Recovery of a rare state the baseline almost never finds.</strong> The same diffusion lifts rare-state recall to $0.1520$ (donor), $0.4618$ (batch) and $0.3393$ (perturbation) against a near-zero baseline, with a reported null on the time split.</li>
+    <li><strong>A topology-aware active-sampling policy.</strong> Scoring unlabelled cells by forecast uncertainty $\times$ inverse local density raises rare-state recall to $0.3556$ (95% CI $\pm 0.1597$) versus $0.0247$ ($\pm 0.0285$) for uniform random querying &mdash; a lift of $0.3309$ &mdash; spending $36.7\%$ of its queries on genuinely rare cells against a $4\%$ base rate.</li>
+    <li><strong>An honestly reported calibration cost.</strong> ECE is consistently <em>worse</em> for the graph-smoothed forecaster on every split; the trade-off is reported in the open rather than hidden.</li>
+    <li><strong>Full self-contained theory.</strong> Every structural property the forecaster relies upon is stated and proved: the Dirichlet-energy identity, the spectral count of components, the variational characterisation of label propagation, its exact non-identifiability limitation, and the geometric convergence and closed form of the normalised iteration the code runs.</li>
+    <li><strong>End-to-end reproducibility.</strong> A pip-installable package (<code class="inl">topocell 0.1.0</code>) regenerates every table, figure and number deterministically from a single <code class="inl">summary.json</code>.</li>
+  </ol>
+</section>
+
+<!-- ============================ NOVELTY ============================ -->
+<section id="novelty">
+  <h2><span class="num">5</span>Methodological Novelty</h2>
+  <p>The contribution is not a new propagator but a <em>controlled isolation</em> of where graph structure helps, paired with a density-steered sampling policy. Two design choices distinguish it from prior single-cell baselines.</p>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Graph-structure-aware propagation, controlled</h3>
+      <p>Prior practice builds a <em>k</em>NN graph and then either reads off neighbours (the plain classifier) or clusters/embeds on it. Here the <em>only</em> variable toggled between the two methods is the diffusion step: both consume the same annotated cells and the same neighbourhood radius. The comparison therefore attributes the measured gain to graph diffusion itself, not to the availability of neighbours, and the four leakage-checked split protocols make that attribution robust to nuisance variation.</p>
+    </div>
+    <div class="panel">
+      <h3>Topology-aware active sampling</h3>
+      <p>The sampling policy multiplies forecast uncertainty (the entropy of the label-propagation forecast) by inverse local density (the reciprocal of per-cell mean <em>k</em>NN distance, high in sparse pockets), combining the two as standardised z-scores. This directs a fixed annotation budget toward exactly the sparse, low-density manifold regions where rare cells reside and where, by the non-identifiability result, smoothing alone is uninformative. Uniform random querying, the baseline, spends its budget at the $4\%$ base rate.</p>
+    </div>
   </div>
-  <pre>cd code
-make install
-make test            # leakage-free splits + Betti-0 monotonicity + metric bounds
-make demo            # writes results/summary.json in ~0.2 s
-make tables figures  # regenerate the table above + figures
-make audit           # readiness gate: every number traces to an artifact</pre>
-  <p class="note">Every element of this page — the table, the figures, and the label-propagation mathematics in the
-    demonstration — is produced by the package in <a href="code/">code/</a>. Every reported value is generated
-    programmatically.</p>
-</div></section>
+  <p class="meta">The "topology" used is deliberately shallow: <em>k</em>NN-graph connectivity, with the Betti-0 statistic being the connected-component count used as a build sanity check. No persistent homology or higher-order invariant is employed, and the method is framed as graph-/manifold-structure-aware rather than topological to avoid overclaiming.</p>
+</section>
 
-<footer><div class="wrap">
-  <p><b>Molena Huynh, PhD</b> · Topological Graph RL for Single-Cell State Transition and Perturbation Forecasting</p>
-  <p class="note">All experiments are reproducible on commodity hardware; runtime and peak memory are reported for each benchmark.</p>
-</div></footer>
+<!-- ============================ THEORY ============================ -->
+<section id="theory">
+  <h2><span class="num">6</span>Theoretical Guarantees</h2>
+  <p>The results below are transcribed from the manuscript's self-contained theory section, each with a one-line interpretation. Every property the forecaster relies upon is proved in full there.</p>
+
+  <div class="thm">
+    <div class="head">Lemma 1 (Dirichlet-energy identity and positive semidefiniteness).</div>
+    <p>For every $f\in\mathbb{R}^{n}$, $\;f^{\top}Lf=\tfrac12\sum_{i,j}A_{ij}(f_i-f_j)^2\ge 0$, so $L\succeq 0$; more generally $\operatorname{Tr}(F^{\top}LF)=\tfrac12\sum_{i,j}A_{ij}\|F_i-F_j\|_2^2$.</p>
+    <div class="interp">Graph smoothing minimises a convex, nonnegative energy that penalises label disagreement across edges.</div>
+  </div>
+
+  <div class="thm">
+    <div class="head">Corollary 2 (Null space of $L$ and the spectral count of components).</div>
+    <p>$L\mathbf{1}=0$, and the multiplicity of the eigenvalue $0$ of $L$ equals $\beta_0(A)$, the number of connected components; $L\succ 0$ on the orthogonal complement of its null space.</p>
+    <div class="interp">Connectivity (Betti-0) is exactly the dimension of the zero-energy subspace, which is why a label-free component cannot be resolved.</div>
+  </div>
+
+  <div class="thm">
+    <div class="head">Proposition 3 (Monotonicity of the connectivity diagnostic).</div>
+    <p>The symmetric <em>k</em>NN edge set is monotone non-decreasing in $k$, $E(A^{(k)})\subseteq E(A^{(k+1)})$, so $\beta_0(A^{(k+1)})\le\beta_0(A^{(k)})$ for all $k\ge 1$.</p>
+    <div class="interp">Adding neighbours can only merge components; this is the property the build-time monotonicity gate asserts over $k\in\{2,4,8,16,32\}$.</div>
+  </div>
+
+  <div class="thm">
+    <div class="head">Theorem 4 (Unique graph-regularised extension of labels).</div>
+    <p>For fidelity weight $\mu>0$, the objective $J(F)=\operatorname{Tr}(F^{\top}LF)+\mu\|M(F-Y)\|_F^2$ is convex with normal equations $(L+\mu M)F=\mu MY$. If every connected component contains at least one labelled cell, then $L+\mu M\succ 0$ and the minimiser $F^{\star}=\mu(L+\mu M)^{-1}MY$ is unique &mdash; the minimum-Dirichlet-energy extension of the observed labels.</p>
+    <div class="interp">Label propagation is the unique minimiser of a convex graph-regularised objective, provided every component carries a label.</div>
+  </div>
+
+  <div class="thm">
+    <div class="head">Corollary 5 (Non-identifiability of a label-free component).</div>
+    <p>If some component $C$ contains no labelled cell, then $L+\mu M$ is singular and the minimiser is not unique: it may be shifted by an arbitrary per-class constant supported on $C$ without changing $J$.</p>
+    <div class="interp">Smoothing cannot invent a label class unreachable from the annotated set &mdash; the formal mechanism behind the null rare-state recall on the time split, and the precise gap active sampling attacks.</div>
+  </div>
+
+  <div class="thm">
+    <div class="head">Theorem 6 (Spectrum of the normalised adjacency).</div>
+    <p>If $d_i>0$ for all $i$ and $S=D^{-1/2}AD^{-1/2}$, then $S$ is symmetric with every eigenvalue in $[-1,1]$; hence for $\alpha\in(0,1)$ the matrix $I-\alpha S$ is symmetric positive definite with eigenvalues in $[1-\alpha,1+\alpha]\subset(0,2)$.</p>
+    <div class="interp">The normalised diffusion is well posed and invertible for any clamping parameter $\alpha\in(0,1)$.</div>
+  </div>
+
+  <div class="thm">
+    <div class="head">Theorem 7 (Geometric convergence and closed form of label propagation).</div>
+    <p>The iteration $F^{(t+1)}=\alpha S F^{(t)}+(1-\alpha)F_0$ converges to the unique fixed point $F^{\star}=(1-\alpha)(I-\alpha S)^{-1}F_0$ with $\|F^{(t)}-F^{\star}\|_F\le\alpha^{t}\|F^{(0)}-F^{\star}\|_F$, and $F^{\star}$ is the unique minimiser of the normalised energy $Q(F)=\tfrac12\operatorname{Tr}(F^{\top}(I-S)F)+\tfrac{1-\alpha}{2\alpha}\|F-F_0\|_F^2$.</p>
+    <div class="interp">The 30-step, $\alpha=0.9$ diffusion the code runs is a geometrically-convergent, faithful surrogate for a closed-form minimum-energy estimator (error $\le\alpha^{30}$ of the initial gap).</div>
+  </div>
+</section>
+
+<!-- ============================ EMPIRICAL ============================ -->
+<section id="empirical">
+  <h2><span class="num">7</span>Empirical Validation</h2>
+  <p>Full-scale configuration: $n=3000$ cells over $n_{\text{seeds}}=5$ random seeds. For each leakage-checked split, accuracy, ECE and rare-state recall are reported as mean $\pm$ 95% confidence interval ($1.96\,s/\sqrt{n}$) for graph-smoothed label propagation (<strong>GS</strong>) and the plain <em>k</em>NN baseline (<strong>kNN</strong>). Higher accuracy and recall are better; <em>lower</em> ECE is better. The best value in each split is in <strong>bold</strong>. Every entry is transcribed verbatim from the seeded <code class="inl">results/summary.json</code>.</p>
+
+  <div class="panel scroll">
+  <table class="bk">
+    <caption>Table 1. Held-out forecasting on the synthetic branching lineage.</caption>
+    <thead>
+      <tr><th>Split</th><th>Method</th><th>Accuracy &uarr;</th><th>ECE &darr;</th><th>Rare recall &uarr;</th></tr>
+    </thead>
+    <tbody>
+      <tr class="toprule"><td>donor</td><td>GS</td><td class="win">0.7004 &plusmn; 0.0093</td><td>0.1247 &plusmn; 0.0425</td><td class="win">0.1520 &plusmn; 0.0586</td></tr>
+      <tr><td>donor</td><td>kNN</td><td>0.6550 &plusmn; 0.0491</td><td class="win">0.1073 &plusmn; 0.0330</td><td>0.0000 &plusmn; 0.0000</td></tr>
+
+      <tr class="splitgap"><td>batch</td><td>GS</td><td class="win">0.6995 &plusmn; 0.0085</td><td>0.1383 &plusmn; 0.0219</td><td class="win">0.4618 &plusmn; 0.3125</td></tr>
+      <tr><td>batch</td><td>kNN</td><td>0.6355 &plusmn; 0.0363</td><td class="win">0.0905 &plusmn; 0.0339</td><td>0.0320 &plusmn; 0.0627</td></tr>
+
+      <tr class="splitgap"><td>time</td><td>GS</td><td class="win">0.5474 &plusmn; 0.1092</td><td>0.1328 &plusmn; 0.0345</td><td>0.0000 &plusmn; 0.0000</td></tr>
+      <tr><td>time</td><td>kNN</td><td>0.4574 &plusmn; 0.0825</td><td class="win">0.0970 &plusmn; 0.0524</td><td>0.0000 &plusmn; 0.0000</td></tr>
+
+      <tr class="splitgap"><td>perturbation</td><td>GS</td><td class="win">0.6875 &plusmn; 0.0323</td><td>0.1649 &plusmn; 0.0385</td><td class="win">0.3393 &plusmn; 0.3358</td></tr>
+      <tr><td>perturbation</td><td>kNN</td><td>0.6490 &plusmn; 0.0221</td><td class="win">0.1184 &plusmn; 0.0376</td><td>0.0286 &plusmn; 0.0560</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td colspan="2"><span class="grp">mean over splits</span> &mdash; GS</td><td class="win">0.6587</td><td>&mdash;</td><td class="win">0.2383</td></tr>
+      <tr><td colspan="2"><span class="grp">mean over splits</span> &mdash; kNN</td><td>0.5992</td><td>&mdash;</td><td>0.0151</td></tr>
+    </tfoot>
+  </table>
+  </div>
+
+  <div class="panel scroll">
+  <table class="bk">
+    <caption>Table 2. Extended data: topology-aware versus random active sampling (budget = 60 annotations, rare base rate 4%).</caption>
+    <thead>
+      <tr><th>Policy</th><th>Rare-state recall &uarr;</th><th>Rare-query rate &uarr;</th></tr>
+    </thead>
+    <tbody>
+      <tr class="toprule"><td>Topology-aware (uncertainty &times; inverse density)</td><td class="win">0.3556 &plusmn; 0.1597</td><td class="win">0.3667 &plusmn; 0.0693</td></tr>
+      <tr><td>Uniform random</td><td>0.0247 &plusmn; 0.0285</td><td>0.0300 &plusmn; 0.0160</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td>Difference (policy &minus; random)</td><td>0.3309</td><td>0.3367</td></tr>
+    </tfoot>
+  </table>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3 style="margin-top:0">Reading of the accuracy result</h3>
+      <p class="meta">Graph diffusion helps consistently but modestly: single-digit-percentage-point gains of roughly four to nine points per split, largest on the hardest (time) protocol. This is the magnitude one expects from a diffusion step, not a categorical change in capability.</p>
+    </div>
+    <div class="panel">
+      <h3 style="margin-top:0">Reading of the rare-state result</h3>
+      <p class="meta">The clearer effect is rare-state recovery. The time-split null is reported as-is: extrapolating forward in pseudotime places the rare late-tip cells entirely beyond the training distribution, and diffusion cannot manufacture an unreachable label class. Wide intervals on per-split rare recall reflect small absolute rare counts and temper any strong point-estimate reading.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ DEMO ============================ -->
+<section id="demo">
+  <h2><span class="num">8</span>Interactive Illustration</h2>
+  <p>A self-contained, client-side illustration of the central mechanism: a small cell-graph with a deliberately rare state, on which a label-propagation diffusion strength can be varied. As smoothing strength rises from zero (the matched <em>k</em>NN baseline) to full diffusion, the reported accuracy and rare-state recall interpolate toward the measured per-split endpoints from Table 1. The split selector switches both the visual graph emphasis and the anchored endpoints.</p>
+  <div class="note">Qualitative interactive illustration. The graph layout is schematic; the two endpoints of each curve (smoothing $=0$ and $=1$) are anchored to the measured <em>k</em>NN and graph-smoothed numbers for the selected split, and intermediate values are a monotone interpolation for intuition only. No biological data are involved and nothing is recomputed in-browser.</div>
+
+  <div class="panel demo-wrap">
+    <div>
+      <canvas id="cellcanvas" width="520" height="360" aria-label="Schematic cell graph with label propagation"></canvas>
+      <div class="legend">
+        <span><i style="background:#5aa9ff"></i>Fate A</span>
+        <span><i style="background:#7ee0a8"></i>Fate B / trunk</span>
+        <span><i style="background:#ffd24a"></i>Rare state</span>
+        <span><i style="background:#fff;border:1px solid #2b3b58"></i>labelled seed (clamped)</span>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="seg" id="splitseg" role="tablist" aria-label="Split protocol">
+        <button data-split="donor" class="on">donor</button>
+        <button data-split="batch">batch</button>
+        <button data-split="time">time</button>
+        <button data-split="perturbation">perturbation</button>
+      </div>
+
+      <label for="smooth">Label-propagation diffusion strength: <span id="smoothval">1.00</span></label>
+      <input type="range" id="smooth" min="0" max="1" step="0.01" value="1">
+      <p class="kbd-tag">0.00 = matched <em>k</em>NN baseline (no diffusion) &nbsp;&middot;&nbsp; 1.00 = full graph smoothing (&alpha;=0.9)</p>
+
+      <div class="readout">
+        <div class="stat">
+          <div class="lab">Held-out accuracy</div>
+          <div class="v" id="accv">0.7004</div>
+          <div class="d" id="accd">+0.0454 vs kNN</div>
+          <div class="bar"><i id="accbar" style="width:70%"></i></div>
+        </div>
+        <div class="stat">
+          <div class="lab">Rare-state recall</div>
+          <div class="v" id="recv">0.1520</div>
+          <div class="d" id="recd">+0.1520 vs kNN</div>
+          <div class="bar"><i id="recbar" style="width:15%"></i></div>
+        </div>
+        <div class="stat">
+          <div class="lab">ECE (lower better)</div>
+          <div class="v" id="ecev">0.1247</div>
+          <div class="d" id="eced" style="color:var(--warn)">+0.0174 cost</div>
+        </div>
+        <div class="stat">
+          <div class="lab">Baseline (kNN) accuracy</div>
+          <div class="v" id="basev">0.6550</div>
+          <div class="d" style="color:var(--muted)">fixed reference</div>
+        </div>
+      </div>
+      <p class="kbd-tag" id="anchornote">Endpoints anchored to Table 1, donor split.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ SIGNIFICANCE ============================ -->
+<section id="significance">
+  <h2><span class="num">9</span>Significance and Impact</h2>
+  <p class="lead">Within a controlled benchmark, conditioning single-cell forecasts on cell-graph connectivity helps &mdash; consistently across four leakage-checked shift protocols, and most usefully by recovering a rare state an otherwise-matched point classifier almost entirely misses.</p>
+  <p>For computational biology, the consequence is a clean, falsifiable statement of where graph structure pays off under distribution shift, and a density-steered annotation policy that turns a fixed labelling budget into rare-state coverage far above the base rate. For machine learning under covariate shift more broadly, the controlled isolation &mdash; identical neighbourhood information, diffusion as the only toggled variable &mdash; supplies a template for attributing generalization gains to a single mechanism rather than to confounded design choices. The accompanying theory certifies that the deployed iteration is a faithful surrogate for a closed-form minimum-energy estimator, so the empirical behaviour is grounded rather than incidental.</p>
+  <p>The natural and necessary next step is to repeat exactly this comparison on real scRNA-seq and perturbation-screen data, for which the repository ships honest, intentionally unexercised ingest stubs. The same protocol could then be strengthened with a learned message-passing propagator in place of fixed-point label propagation, and with calibration-aware training to remove the ECE penalty.</p>
+  <h3>Honest limitations (kept visible)</h3>
+  <div class="limit"><strong>(1) Synthetic data.</strong> All numbers come from a generated branching lineage, not biological measurements; no biological discovery is claimed and the magnitudes need not transfer to real scRNA-seq.</div>
+  <div class="limit"><strong>(2) Modest accuracy gains.</strong> Improvement is $0.04$&ndash;$0.09$ per split (mean $0.0595$); the strongest effect is rare-state recall, and even that is null on the time split.</div>
+  <div class="limit"><strong>(3) Calibration cost.</strong> Graph smoothing worsens ECE on all four splits, so probabilities are less trustworthy as confidences without recalibration.</div>
+  <div class="limit"><strong>(4) Shallow "topology."</strong> The only topological object is <em>k</em>NN-graph connectivity; the Betti-0 statistic is a connected-component count, constant at one at this scale. No persistent homology is used.</div>
+  <div class="limit"><strong>(5) Wide intervals on rare metrics.</strong> Few rare cells per held-out group give wide per-split rare-recall confidence intervals (up to $\pm 0.3358$).</div>
+  <div class="limit"><strong>(6) Single benchmark family.</strong> One synthetic generator cannot substitute for the diversity of real datasets; external validation remains the decisive test.</div>
+</section>
+
+<!-- ============================ REPRODUCIBILITY ============================ -->
+<section id="repro">
+  <h2><span class="num">10</span>Reproducibility</h2>
+  <p>The reference implementation is the pip-installable package <code class="inl">topocell 0.1.0</code> at <code class="inl">submission/code</code> (CPU-only: NumPy, SciPy, scikit-learn, NetworkX, Matplotlib). A single seeded <code class="inl">results/summary.json</code> is the source of truth for every table, figure and numerical claim; the manuscript's Table 1 is transcribed verbatim from the generated <code class="inl">main_results.tex</code>.</p>
+  <pre><span class="c"># 1. install the CPU reference package (editable)</span>
+conda env create -f environment.yml &amp;&amp; conda activate topocell
+<span class="k">pip install -e .</span>            <span class="c"># installs the `topocell` package</span>
+<span class="c"># pip install -e .[gpu]    optional torch GPU/GNN backend</span>
+
+<span class="c"># 2. reproduce every number, table and figure</span>
+make test        <span class="c"># synthetic structure - no-leakage splits - Betti-0 monotonicity - metric bounds</span>
+make full-run    <span class="c"># reported-scale config -> results/summary.json (~20.8 s, 320.6 MB peak)</span>
+make tables      <span class="c"># results/main_results.tex</span>
+make figures     <span class="c"># figures/fig_lineage.pdf, figures/fig_forecast.pdf</span>
+
+<span class="c"># or one command:</span>
+bash scripts/reproduce_all.sh full   <span class="c"># reported scale</span></pre>
+  <p>The full-scale run is launched by <code class="inl">scripts/run.py</code> on <code class="inl">configs/full.yaml</code> writing to <code class="inl">results/</code>. Three integrity gates are asserted before any metric is recorded: grouping splits are leakage-free, the rare state is present, and the Betti-0 component count is monotone non-increasing in $k$.</p>
+  <div class="panel">
+    <h3 style="margin-top:0">Recorded provenance (identical results)</h3>
+    <p class="meta">Master seed $0$ &middot; Python 3.13.12 / NumPy 2.4.3 / SciPy 1.17.1 / NetworkX 3.6.1 / scikit-learn 1.8.0 / Matplotlib 3.10.8 &middot; platform macOS-arm64 (Mach-O) &middot; runtime 20.8 s &middot; peak memory 320.6 MB. Generation is fully seeded and bit-for-bit reproducible. Honest ingest stubs for real AnnData and perturbation-screen data are included but intentionally not exercised.</p>
+  </div>
+  <p class="meta">No biological data were used or generated. All results derive from a seeded synthetic lineage regenerated deterministically by the code.</p>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><strong>Graph-structure-aware label propagation and active sampling for few-label single-cell state forecasting and rare-state recovery</strong></p>
+    <p>Molena Huynh &middot; reference implementation <code class="inl">topocell 0.1.0</code> &middot; all data synthetic and seeded &middot; numbers transcribed from <code class="inl">results/summary.json</code></p>
+  </div>
+</footer>
 
 <script>
-// ---------- synthetic branching lineage + kNN graph + label propagation, all in-browser ----------
-const $ = id => document.getElementById(id);
-const STATE_COLORS = ['#1f6feb','#0aa6a6','#e8993a','#d6336c']; // 0,1 fates / trunk + rare(3)
-const STATE_NAMES  = ['trunk','fate A','fate B','RARE'];
-let L = null;        // lineage: {n, X(2D screen coords), state, rare}
-let pred = null;     // predicted states
-let queried = [];    // indices the active policy would annotate next
+"use strict";
+(function () {
+  // ---- Measured endpoints, transcribed from results/summary.json (Table 1) ----
+  // Each split: accuracy / rare-recall / ECE for graph-smoothed (gs) vs matched kNN.
+  var DATA = {
+    donor:        { gsAcc: 0.7004, knnAcc: 0.6550, gsRec: 0.1520, knnRec: 0.0000, gsEce: 0.1247, knnEce: 0.1073 },
+    batch:        { gsAcc: 0.6995, knnAcc: 0.6355, gsRec: 0.4618, knnRec: 0.0320, gsEce: 0.1383, knnEce: 0.0905 },
+    time:         { gsAcc: 0.5474, knnAcc: 0.4574, gsRec: 0.0000, knnRec: 0.0000, gsEce: 0.1328, knnEce: 0.0970 },
+    perturbation: { gsAcc: 0.6875, knnAcc: 0.6490, gsRec: 0.3393, knnRec: 0.0286, gsEce: 0.1649, knnEce: 0.1184 }
+  };
 
-function rng(seed){ let s=seed>>>0||1; return ()=> (s=(s*1664525+1013904223)>>>0)/4294967296; }
-function gauss(r){ let u=0,v=0; while(!u)u=r(); while(!v)v=r(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  var canvas = document.getElementById("cellcanvas");
+  var ctx = (canvas && canvas.getContext) ? canvas.getContext("2d") : null;
+  var state = { split: "donor", s: 1.0 };
 
-// Generate a 2D branching lineage: a trunk that splits into two fates, plus a rare tip cluster.
-function genLineage(){
-  const n=+$('n').value, noise=+$('noise').value/100;
-  const r=rng((Math.random()*1e9)|0);
-  const X=[], state=[], pt=[];
-  // anchors on screen
-  const O=[70,170], A=[360,70], B=[360,270];          // origin, fate A, fate B
-  for(let i=0;i<n;i++){
-    const t=r();                                       // pseudotime
-    let bx,by,s;
-    if(t<0.45){                                        // trunk
-      const f=t/0.45; bx=O[0]+(230-O[0])*f; by=170; s=0;
-    } else {
-      const split=[O[0]+(230-O[0]),170], f=(t-0.45)/0.55;
-      if(r()<0.5){ bx=split[0]+(A[0]-split[0])*f; by=split[1]+(A[1]-split[1])*f; s=1; }
-      else       { bx=split[0]+(B[0]-split[0])*f; by=split[1]+(B[1]-split[1])*f; s=2; }
+  // ---- Deterministic schematic graph (seeded LCG, no Math.random drift) ----
+  function lcg(seed) {
+    var x = seed >>> 0;
+    return function () { x = (1103515245 * x + 12345) & 0x7fffffff; return x / 0x7fffffff; };
+  }
+  var rnd = lcg(7);
+  var W = 520, H = 360, N = 64;
+  var nodes = [];
+  for (var i = 0; i < N; i++) {
+    var cls, r = rnd();
+    if (i >= N - 4) cls = 2;            // rare state, late-tip pocket (~6% schematic)
+    else if (r < 0.5) cls = 0;          // fate A
+    else cls = 1;                       // fate B / trunk
+    var cx, cy;
+    if (cls === 0) { cx = 0.30 * W; cy = 0.32 * H; }
+    else if (cls === 1) { cx = 0.62 * W; cy = 0.66 * H; }
+    else { cx = 0.86 * W; cy = 0.22 * H; }
+    nodes.push({
+      x: cx + (rnd() - 0.5) * 0.28 * W,
+      y: cy + (rnd() - 0.5) * 0.30 * H,
+      cls: cls,
+      labelled: rnd() < 0.16
+    });
+  }
+  for (var c0 = 0; c0 < N; c0++) {
+    nodes[c0].x = Math.max(16, Math.min(W - 16, nodes[c0].x));
+    nodes[c0].y = Math.max(16, Math.min(H - 16, nodes[c0].y));
+  }
+  // kNN edges (k=4) by squared Euclidean distance
+  var edges = [];
+  for (var a = 0; a < N; a++) {
+    var ds = [];
+    for (var b = 0; b < N; b++) {
+      if (b === a) continue;
+      var dx = nodes[a].x - nodes[b].x, dy = nodes[a].y - nodes[b].y;
+      ds.push({ b: b, d: dx * dx + dy * dy });
     }
-    X.push([bx+gauss(r)*noise*34, by+gauss(r)*noise*34]); state.push(s); pt.push(t);
+    ds.sort(function (p, q) { return p.d - q.d; });
+    for (var e = 0; e < 4; e++) edges.push({ a: a, b: ds[e].b });
   }
-  // carve a RARE cluster from the late tip of fate B
-  let made=0; const target=Math.max(3,Math.round(0.06*n));
-  for(let i=0;i<n && made<target;i++){ if(state[i]===2 && pt[i]>0.8){ state[i]=3; X[i][0]+=18; X[i][1]+=14; made++; } }
-  L={n,X,state,rare:3}; pred=null; queried=[];
-  draw();
-}
 
-function dist2(a,b){ const dx=a[0]-b[0], dy=a[1]-b[1]; return dx*dx+dy*dy; }
+  var COLORS = ["#5aa9ff", "#7ee0a8", "#ffd24a"];
 
-// Build a symmetric kNN graph; return adjacency as array of Sets.
-function knn(k){
-  const n=L.n, adj=Array.from({length:n},()=>new Set());
-  for(let i=0;i<n;i++){
-    const d=[]; for(let j=0;j<n;j++) if(j!==i) d.push([dist2(L.X[i],L.X[j]),j]);
-    d.sort((a,b)=>a[0]-b[0]);
-    for(let t=0;t<Math.min(k,d.length);t++){ const j=d[t][1]; adj[i].add(j); adj[j].add(i); }
+  function hex(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
+  function blend(h1, h2, t) {
+    var p = hex(h1), q = hex(h2);
+    var r = Math.round(p[0] + (q[0] - p[0]) * t),
+        g = Math.round(p[1] + (q[1] - p[1]) * t),
+        bl = Math.round(p[2] + (q[2] - p[2]) * t);
+    return "rgb(" + r + "," + g + "," + bl + ")";
   }
-  return adj;
-}
-
-function components(adj){
-  const n=adj.length, seen=new Array(n).fill(false); let c=0;
-  for(let i=0;i<n;i++){ if(seen[i])continue; c++; const st=[i]; seen[i]=true;
-    while(st.length){ const u=st.pop(); adj[u].forEach(v=>{ if(!seen[v]){seen[v]=true;st.push(v);} }); } }
-  return c;
-}
-
-// Seed labels: pick `seeds` cells, biased to include >=1 of each present state.
-function pickSeeds(){
-  const n=L.n, ns=+$('seeds').value, r=rng(12345);
-  const seed=new Array(n).fill(false), byState={};
-  L.state.forEach((s,i)=>{ (byState[s]=byState[s]||[]).push(i); });
-  Object.values(byState).forEach(arr=>{ seed[arr[(r()*arr.length)|0]]=true; });
-  let count=Object.keys(byState).length;
-  while(count<ns){ const i=(r()*n)|0; if(!seed[i]){seed[i]=true;count++;} }
-  return seed;
-}
-
-// Normalized label propagation: F <- alpha S F + (1-alpha) F0, S = D^-1/2 A D^-1/2.
-function propagate(adj, seed){
-  const n=L.n, C=4, alpha=0.9, iters=40;
-  const deg=adj.map(s=>s.size||1), dinv=deg.map(d=>1/Math.sqrt(d));
-  const F0=Array.from({length:n},()=>new Float64Array(C));
-  for(let i=0;i<n;i++) if(seed[i]) F0[i][L.state[i]]=1;
-  let F=F0.map(row=>Float64Array.from(row));
-  for(let it=0;it<iters;it++){
-    const Fn=Array.from({length:n},()=>new Float64Array(C));
-    for(let i=0;i<n;i++){ adj[i].forEach(j=>{ const w=dinv[i]*dinv[j];
-      for(let c=0;c<C;c++) Fn[i][c]+=w*F[j][c]; }); }
-    for(let i=0;i<n;i++) for(let c=0;c<C;c++) Fn[i][c]=alpha*Fn[i][c]+(1-alpha)*F0[i][c];
-    F=Fn;
+  function star(cx, cy, spikes, outer, inner) {
+    var rot = -Math.PI / 2, step = Math.PI / spikes;
+    ctx.moveTo(cx + Math.cos(rot) * outer, cy + Math.sin(rot) * outer);
+    for (var i = 0; i < spikes; i++) {
+      ctx.lineTo(cx + Math.cos(rot) * outer, cy + Math.sin(rot) * outer); rot += step;
+      ctx.lineTo(cx + Math.cos(rot) * inner, cy + Math.sin(rot) * inner); rot += step;
+    }
+    ctx.closePath();
   }
-  return F;
-}
 
-// Non-graph baseline: majority label among the k nearest SEED cells in feature space.
-function knnBaseline(seed,k){
-  const n=L.n, out=new Array(n);
-  const labeled=[]; for(let i=0;i<n;i++) if(seed[i]) labeled.push(i);
-  for(let i=0;i<n;i++){
-    const d=labeled.map(j=>[dist2(L.X[i],L.X[j]),L.state[j]]).sort((a,b)=>a[0]-b[0]);
-    const vote={}; for(let t=0;t<Math.min(k,d.length);t++){ vote[d[t][1]]=(vote[d[t][1]]||0)+1; }
-    out[i]=+Object.keys(vote).reduce((a,b)=>vote[a]>=vote[b]?a:b);
+  function draw() {
+    if (!ctx) return;
+    var s = state.s;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#0d1726";
+    ctx.fillRect(0, 0, W, H);
+    ctx.lineWidth = 1;
+    for (var i = 0; i < edges.length; i++) {
+      var pn = nodes[edges[i].a], qn = nodes[edges[i].b];
+      ctx.strokeStyle = "rgba(120,160,220," + (0.06 + 0.30 * s) + ")";
+      ctx.beginPath(); ctx.moveTo(pn.x, pn.y); ctx.lineTo(qn.x, qn.y); ctx.stroke();
+    }
+    for (var j = 0; j < N; j++) {
+      var nd = nodes[j];
+      var base = COLORS[nd.cls];
+      var col = nd.labelled ? base : blend("#cdd6e6", base, s); // unlabelled "diffuse" toward class colour
+      var rad = nd.cls === 2 ? 6.5 : 4.6;
+      ctx.beginPath();
+      if (nd.cls === 2) { star(nd.x, nd.y, 5, rad + 2.4, rad * 0.5); }
+      else { ctx.arc(nd.x, nd.y, rad, 0, Math.PI * 2); }
+      ctx.fillStyle = col;
+      ctx.fill();
+      if (nd.labelled) { ctx.lineWidth = 1.6; ctx.strokeStyle = "#ffffff"; ctx.stroke(); }
+    }
   }
-  return out;
-}
 
-function entropy(p){ let e=0; for(const x of p){ if(x>1e-9) e-=x*Math.log(x); } return e; }
+  function fmt(x) { return x.toFixed(4); }
+  function signed(x) { return (x >= 0 ? "+" : "−") + Math.abs(x).toFixed(4); }
+  function set(id, v) { var el = document.getElementById(id); if (el) el.textContent = v; }
+  function width(id, pct) { var el = document.getElementById(id); if (el) el.style.width = Math.max(0, Math.min(100, pct)) + "%"; }
 
-function run(){
-  const k=+$('k').value, seed=pickSeeds(), adj=knn(k);
-  const F=propagate(adj,seed);
-  pred=new Array(L.n);
-  for(let i=0;i<L.n;i++){ let bc=0,bv=-1; const s=F[i].reduce((a,b)=>a+b,0)||1;
-    for(let c=0;c<4;c++){ const v=F[i][c]/s; if(v>bv){bv=v;bc=c;} } pred[i]=bc; }
-  const base=knnBaseline(seed,k);
-
-  // metrics on the UNLABELED cells (the forecast target)
-  let nU=0, accG=0, accB=0, rarePos=0, rareHit=0;
-  for(let i=0;i<L.n;i++){ if(seed[i])continue; nU++;
-    if(pred[i]===L.state[i])accG++; if(base[i]===L.state[i])accB++;
-    if(L.state[i]===L.rare){ rarePos++; if(pred[i]===L.rare)rareHit++; } }
-  $('r-acc').textContent=(accG/nU).toFixed(3);
-  $('r-base').textContent=(accB/nU).toFixed(3);
-  $('r-rare').textContent=rarePos? (rareHit/rarePos).toFixed(3): '1.000';
-  $('r-comp').textContent=components(adj);
-  L._seed=seed; L._adj=adj; L._F=F;
-  draw();
-}
-
-// Active sampling: score unlabeled cells by uncertainty (entropy) x inverse local density.
-function activeSample(){
-  if(!L._F){ run(); }
-  const k=+$('k').value, adj=L._adj, F=L._F, seed=L._seed, n=L.n;
-  const cand=[]; for(let i=0;i<n;i++) if(!seed[i]) cand.push(i);
-  // inverse local density = mean distance to k nearest neighbours (sparse => high)
-  const score=cand.map(i=>{
-    const s=F[i].reduce((a,b)=>a+b,0)||1, p=F[i].map(x=>x/s);
-    let md=0,c=0; adj[i].forEach(j=>{ md+=Math.sqrt(dist2(L.X[i],L.X[j])); c++; }); md=c?md/c:1;
-    return [entropy(p)+0.6*Math.log(1+md), i];
-  });
-  score.sort((a,b)=>b[0]-a[0]);
-  queried=score.slice(0,Math.max(4,Math.round(0.06*n))).map(s=>s[1]);
-  draw();
-}
-
-function draw(){
-  drawPanel($('cells'), true);
-  drawPanel($('truth'), false);
-  // legend
-  $('legend').innerHTML = STATE_NAMES.map((nm,i)=>`<span><i style="background:${STATE_COLORS[i]}"></i>${nm}</span>`).join('')
-    + '<span><i style="background:#10151c"></i>annotated seed (✕)</span>';
-}
-
-function drawPanel(cv, predicted){
-  const x=cv.getContext('2d'); x.clearRect(0,0,cv.width,cv.height);
-  const labels = predicted ? (pred||L.state.map(()=>0)) : L.state;
-  // draw kNN edges on the predicted panel
-  if(predicted && L._adj){ x.strokeStyle='#dde3ec'; x.lineWidth=1;
-    for(let i=0;i<L.n;i++) L._adj[i].forEach(j=>{ if(i<j){ x.beginPath();
-      x.moveTo(L.X[i][0],L.X[i][1]); x.lineTo(L.X[j][0],L.X[j][1]); x.stroke(); } }); }
-  for(let i=0;i<L.n;i++){
-    const isRare=L.state[i]===L.rare, c=STATE_COLORS[labels[i]];
-    if(isRare){ star(x,L.X[i][0],L.X[i][1],7,c); }
-    else { x.beginPath(); x.arc(L.X[i][0],L.X[i][1],4.5,0,7); x.fillStyle=c; x.fill(); }
-    if(predicted && L._seed && L._seed[i]){ x.strokeStyle='#10151c'; x.lineWidth=1.6;
-      x.beginPath(); x.moveTo(L.X[i][0]-4,L.X[i][1]-4); x.lineTo(L.X[i][0]+4,L.X[i][1]+4);
-      x.moveTo(L.X[i][0]+4,L.X[i][1]-4); x.lineTo(L.X[i][0]-4,L.X[i][1]+4); x.stroke(); }
+  function update() {
+    var d = DATA[state.split], s = state.s;
+    // monotone linear interpolation between matched-kNN endpoint (s=0) and graph-smoothed (s=1)
+    var acc = d.knnAcc + (d.gsAcc - d.knnAcc) * s;
+    var rec = d.knnRec + (d.gsRec - d.knnRec) * s;
+    var ece = d.knnEce + (d.gsEce - d.knnEce) * s;
+    set("smoothval", s.toFixed(2));
+    set("accv", fmt(acc));
+    set("recv", fmt(rec));
+    set("ecev", fmt(ece));
+    set("basev", fmt(d.knnAcc));
+    set("accd", signed(acc - d.knnAcc) + " vs kNN");
+    set("recd", signed(rec - d.knnRec) + " vs kNN");
+    set("eced", signed(ece - d.knnEce) + " cost");
+    width("accbar", acc * 100);
+    width("recbar", rec * 100);
+    set("anchornote", "Endpoints anchored to Table 1, " + state.split + " split.");
+    draw();
   }
-  if(!predicted) queried.forEach(i=>{ x.strokeStyle='#d6336c'; x.lineWidth=2;
-    x.beginPath(); x.arc(L.X[i][0],L.X[i][1],9,0,7); x.stroke();
-    x.beginPath(); x.moveTo(L.X[i][0]-12,L.X[i][1]); x.lineTo(L.X[i][0]+12,L.X[i][1]);
-    x.moveTo(L.X[i][0],L.X[i][1]-12); x.lineTo(L.X[i][0],L.X[i][1]+12); x.stroke(); });
-}
 
-function star(x,cx,cy,rad,fill){
-  x.beginPath();
-  for(let i=0;i<10;i++){ const ang=Math.PI/5*i-Math.PI/2, rr=i%2?rad*0.45:rad;
-    const px=cx+Math.cos(ang)*rr, py=cy+Math.sin(ang)*rr; i?x.lineTo(px,py):x.moveTo(px,py); }
-  x.closePath(); x.fillStyle=fill; x.fill(); x.strokeStyle='#10151c'; x.lineWidth=.7; x.stroke();
-}
+  // ---- wiring (guarded so the page degrades gracefully if elements are missing) ----
+  var slider = document.getElementById("smooth");
+  if (slider) slider.addEventListener("input", function () { state.s = parseFloat(slider.value); update(); });
 
-$('n').oninput=e=>{$('nlbl').textContent=e.target.value; genLineage();};
-$('k').oninput=e=>{$('klbl').textContent=e.target.value; if(pred) run();};
-$('noise').oninput=e=>{$('noiselbl').textContent=(e.target.value/100).toFixed(2); genLineage();};
-$('seeds').oninput=e=>$('seedlbl').textContent=e.target.value;
-$('gen').onclick=genLineage; $('prop').onclick=run; $('active').onclick=activeSample;
-genLineage();
+  var seg = document.getElementById("splitseg");
+  if (seg) {
+    seg.addEventListener("click", function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest("button[data-split]") : null;
+      if (!btn) return;
+      state.split = btn.getAttribute("data-split");
+      var bs = seg.querySelectorAll("button");
+      for (var i = 0; i < bs.length; i++) bs[i].classList.toggle("on", bs[i] === btn);
+      update();
+    });
+  }
+
+  update(); // readouts populate even if canvas is unavailable
+})();
 </script>
 </body>
 </html>

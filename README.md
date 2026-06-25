@@ -33,11 +33,11 @@ pipeline and traced by an audit gate; none is hand-edited.
 4. **Topological invariant as a tested property.** The Betti-0 curve of the cell graph is
    asserted to be monotone non-increasing in `k` on seeded data, with the assertion encoded as
    a test.
-5. **Auditable reproducibility.** A readiness gate verifies that each reported headline value
+5. **Auditable reproducibility.** A readiness gate verifies that each reported main value
    traces to a generated artifact, that integrity flags hold, and that forbidden
    absolute-superiority phrasing is absent.
 
-## Headline results
+## Main results
 
 The values below are transcribed verbatim from `code/results/summary.json` and
 `code/results/main_results.md`. They correspond to the **reported scale**
@@ -120,7 +120,7 @@ Run the entry point from the `code/` directory, which contains `scripts/`, `conf
     ├── scripts/                Command-line entry points around the library
     ├── configs/                smoke.yaml (demo scale) · full.yaml (reported scale)
     ├── tests/                  Leakage, Betti-0 monotonicity, and metric-bound tests
-    ├── results/                Generated artifacts; summary.json is the source of truth
+    ├── results/                Generated artifacts; summary.json is the authoritative artifact
     └── figures/                Generated figure PDFs
 ```
 

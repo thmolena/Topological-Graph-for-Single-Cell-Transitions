@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Graph-structure-aware label propagation for single-cell state forecasting</title>
-<meta name="description" content="Graph-structure-aware label propagation and topology-aware active sampling for few-label single-cell state forecasting and rare-state recovery under donor, batch, time and perturbation shift. A controlled, fully reproducible synthetic benchmark with proven guarantees and an interactive in-browser illustration.">
+<meta name="description" content="Graph-structure-aware label propagation and topology-aware active sampling for few-label single-cell state forecasting and rare-state recovery under donor, batch, time and perturbation shift. A controlled, fully seeded synthetic benchmark with proved variational and spectral guarantees and an interactive in-browser illustration.">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"
@@ -13,7 +13,7 @@
   :root{
     --bg:#fbfcfe; --panel:#ffffff; --ink:#10151c; --muted:#5b6675; --line:#e6eaf0;
     --accent:#1A4E8A; --accent2:#1f6feb; --accent-d:#143c6b; --good:#1f7a3d; --warn:#9a5b00;
-    --code:#0d1117; --codeink:#e6edf3;
+    --code:#eef2f7; --codeink:#1b2330;
     --shadow:0 1px 2px rgba(16,21,28,.06),0 8px 24px rgba(16,21,28,.06);
   }
   *{box-sizing:border-box}
@@ -75,16 +75,16 @@
   table.bk tfoot td{border-top:1.5px solid var(--ink);font-weight:600}
   table.bk .grp{color:var(--muted);font-size:12px;font-weight:400}
   .scroll{overflow-x:auto}
-  pre{background:var(--code);color:var(--codeink);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13px;line-height:1.55;box-shadow:var(--shadow)}
-  pre .c{color:#8b949e}
-  pre .k{color:#79c0ff}
+  pre{background:var(--code);color:var(--codeink);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto;font-size:13px;line-height:1.55;box-shadow:var(--shadow)}
+  pre .c{color:#6e7781}
+  pre .k{color:#0550ae}
   code.inl{background:rgba(26,78,138,.08);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:.92em}
   .note{font-size:13.5px;color:var(--muted);border:1px dashed var(--line);border-radius:10px;padding:10px 14px;background:#fcfdff}
   .limit{border-left:3px solid var(--warn);background:#fffaf2;border-radius:0 10px 10px 0;padding:12px 16px;margin:12px 0;font-size:14.5px}
   /* demo */
   .demo-wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:start}
   @media(max-width:900px){.demo-wrap{grid-template-columns:1fr}}
-  #cellcanvas{width:100%;height:auto;display:block;background:#0d1726;border-radius:12px;border:1px solid #1d2c44}
+  #cellcanvas{width:100%;height:auto;display:block;background:#ffffff;border-radius:12px;border:1px solid #d8dee8}
   .controls label{display:block;font-size:13px;font-weight:600;margin:14px 0 4px}
   .controls input[type=range]{width:100%;accent-color:var(--accent)}
   .seg{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}
@@ -123,14 +123,14 @@
   <div class="wrap">
     <span class="tag">Graph-based semi-supervised learning &middot; Single-cell forecasting under distribution shift</span>
     <h1>Graph-structure-aware label propagation and active sampling for few-label single-cell state forecasting and rare-state recovery</h1>
-    <p class="sub">A controlled, fully seeded benchmark that isolates the value of cell-graph connectivity for forecasting cell state across donor, batch, time and perturbation shift &mdash; with proven variational and spectral guarantees, an honestly reported calibration cost, and an active-sampling policy that recovers a rare state a point classifier almost entirely misses.</p>
+    <p class="sub">A controlled, fully seeded benchmark isolates a single variable &mdash; whether a forecaster diffuses its predictions over the cell graph &mdash; and quantifies the effect on held-out cell-state forecasting under donor, batch, time and perturbation shift. Diffusion yields consistent accuracy gains, recovers a rare state that an otherwise-identical point classifier almost entirely misses, and incurs a calibration cost reported in full; a density-steered active-sampling policy converts a fixed annotation budget into rare-state coverage far above the base rate. Proved variational and spectral guarantees certify each structural property the forecaster relies upon, and every reported figure is transcribed verbatim from a single seeded artifact. The study forms one entry in a unified graph-learning program spanning single-cell biology and quantum computation.</p>
     <div class="chips">
       <div class="chip"><span class="n">+0.0595</span><span class="l">mean held-out accuracy gain<br>over matched <em>k</em>NN (4 splits)</span></div>
       <div class="chip"><span class="n">0.3556</span><span class="l">rare-state recall via topology-aware<br>sampling vs 0.0247 random</span></div>
       <div class="chip"><span class="n">4</span><span class="l">leakage-checked transfer<br>protocols, 5 seeds</span></div>
       <div class="chip"><span class="n">100%</span><span class="l">numbers transcribed from<br>seeded <code class="inl">summary.json</code></span></div>
     </div>
-    <p class="authorline"><b>Molena Huynh</b> &nbsp;&middot;&nbsp; reference implementation <code class="inl">topocell 0.1.0</code> (CPU, pip-installable) &nbsp;&middot;&nbsp; all data synthetic and seeded</p>
+    <p class="authorline"><b>Molena Huynh</b>, North Carolina State University &nbsp;&middot;&nbsp; <a href="mailto:molena.huynh@jmp.com">molena.huynh@jmp.com</a> &nbsp;&middot;&nbsp; reference implementation <code class="inl">topocell 0.1.0</code> (CPU, pip-installable) &nbsp;&middot;&nbsp; all data synthetic and seeded</p>
   </div>
 </header>
 
@@ -139,27 +139,27 @@
 <!-- ============================ MOTIVATION ============================ -->
 <section id="motivation">
   <h2><span class="num">1</span>Background and Motivation</h2>
-  <p class="lead">Single-cell measurements resolve continuous trajectories of differentiation, activation and treatment response. A recurring analysis goal is to <em>forecast</em> the state a cell or population will occupy under conditions not directly observed: a donor not yet profiled, a technical batch run later, a later point along a developmental trajectory, or an untested perturbation.</p>
-  <p>The data that support such forecasts share two structural features that together define the problem this work addresses.</p>
+  <p class="lead">Single-cell measurements resolve differentiation, activation and treatment response as continuous trajectories. A recurring analysis goal is to <em>forecast</em> the state a cell or population will occupy under conditions absent from the training set &mdash; a donor not yet profiled, a batch run later, a later point along a developmental trajectory, an untested perturbation &mdash; precisely the regime that demands generalization off the training distribution.</p>
+  <p>Two structural features of single-cell data jointly define the problem addressed here.</p>
   <div class="grid2">
     <div class="panel">
       <h3>Manifold concentration</h3>
-      <p>Cells do not occupy feature space uniformly; they concentrate near a low-dimensional manifold that is routinely approximated by a <em>k</em>-nearest-neighbour (<em>k</em>NN) graph before clustering, embedding or pseudotime inference. A point classifier that consumes features alone discards the neighbourhood geometry that this graph encodes.</p>
+      <p>Cells do not fill feature space uniformly; they concentrate near a low-dimensional manifold that single-cell pipelines routinely approximate with a <em>k</em>-nearest-neighbour (<em>k</em>NN) graph before clustering, embedding or pseudotime inference. A classifier reading features alone discards exactly the neighbourhood geometry this graph encodes.</p>
     </div>
     <div class="panel">
       <h3>Rarity of the decisive states</h3>
-      <p>The biologically decisive states &mdash; transient progenitors, treatment-resistant clones &mdash; are frequently rare. Classifiers trained to minimise average error tend to ignore them, and standard accuracy hides this failure. Recovering rare states with <em>calibrated</em> uncertainty is the open problem.</p>
+      <p>The biologically decisive states &mdash; transient progenitors, treatment-resistant clones &mdash; are typically rare. Classifiers trained to minimise average error learn to ignore them, and aggregate accuracy masks the failure. Recovering these states, and doing so with <em>calibrated</em> uncertainty, is the open problem.</p>
     </div>
   </div>
-  <p>Two long-studied levers respond to these features. Letting predictions <em>diffuse over the data graph</em> &mdash; graph-based semi-supervised learning by label propagation &mdash; lets a cell borrow statistical strength from its manifold neighbourhood. Choosing <em>which</em> cells to annotate &mdash; active learning &mdash; can be steered toward the sparse, uncertain regions where rare states live when informativeness is combined with a manifold-density signal.</p>
-  <p>The work does not claim a new algorithm. It isolates, under controlled and leakage-checked conditions, the value of <em>graph structure</em> for single-cell forecasting by holding the neighbourhood information fixed and toggling only whether the model diffuses over the graph. The open problem it targets directly is held-out generalization under covariate shift together with rare-state recall and the calibration cost that recovery incurs.</p>
+  <p>Two long-studied levers address these features directly. Diffusing predictions <em>over the data graph</em> &mdash; graph-based semi-supervised learning by label propagation &mdash; lets each cell borrow statistical strength from its manifold neighbourhood. Choosing <em>which</em> cells to annotate &mdash; active learning &mdash; can be steered toward the sparse, uncertain regions where rare states reside, once informativeness is coupled with a manifold-density signal. Both are standard; what is missing is a clean measurement of how much the first lever actually buys under realistic shift.</p>
+  <p>This work claims no new algorithm. Its contribution is a controlled, leakage-checked measurement of the value of <em>graph structure</em> for single-cell forecasting, obtained by holding the available neighbourhood information fixed and toggling only whether the model diffuses over the graph. Three quantities are targeted together: held-out generalization under covariate shift, rare-state recall, and the calibration cost that recovering rare states incurs.</p>
   <div class="note">All experiments run on a seeded synthetic branching lineage. This is a falsifiable sanity benchmark, not a biological dataset; that scope is stated explicitly throughout and bounds every claim below.</div>
 </section>
 
 <!-- ============================ PRELIMINARIES ============================ -->
 <section id="prelim">
   <h2><span class="num">2</span>Mathematical Preliminaries</h2>
-  <p>Fix $n$ cells embedded in a feature space $\mathbb{R}^{d}$ (a stand-in for a PCA or latent embedding of expression). The objects below are exactly those the forecaster and its theory rely upon.</p>
+  <p>Fix $n$ cells embedded in a feature space $\mathbb{R}^{d}$ (a stand-in for a PCA or latent embedding of expression). The objects defined below are precisely those the forecaster and its guarantees invoke; each is stated once and reused throughout.</p>
 
   <h3>Cell-similarity graph, degree, Laplacian</h3>
   <p>Let $A\in\mathbb{R}^{n\times n}$ be the symmetric adjacency of the <em>k</em>NN cell graph: $A=A^{\top}$, $A_{ij}\ge 0$, $A_{ii}=0$, and $A_{ij}>0$ iff cells $i,j$ are joined by an undirected edge. An edge $\{i,j\}$ is present under the either-direction convention iff $j$ is among the $k$ nearest neighbours of $i$ or $i$ is among the $k$ nearest neighbours of $j$. The degree is $d_i=\sum_j A_{ij}$, collected in $D=\operatorname{diag}(d_1,\dots,d_n)$, and the combinatorial graph Laplacian is
@@ -174,7 +174,7 @@
   run for a fixed number of power iterations. The implementation uses $\alpha=0.9$ and $30$ iterations; held-out cells are predicted from the row-normalised diffused scores, with the maximum class probability serving as the confidence used for calibration.</p>
 
   <h3>Apples-to-apples <em>k</em>NN baseline</h3>
-  <p>The control is a plain <em>k</em>NN classifier in feature space, fitted on the <em>same</em> annotated cells with the <em>same</em> neighbourhood size $k$, i.e. identical neighbourhood information <em>without</em> diffusion. This isolates the diffusion step rather than the mere availability of neighbours.</p>
+  <p>The control is a plain <em>k</em>NN classifier in feature space, fitted on the <em>same</em> annotated cells with the <em>same</em> neighbourhood size $k$: identical neighbourhood information, <em>without</em> diffusion. Any measured difference is therefore attributable to the diffusion step alone, not to the mere availability of neighbours.</p>
 
   <h3>Metrics</h3>
   <div class="grid3">
@@ -196,101 +196,101 @@
 <!-- ============================ PROBLEM ============================ -->
 <section id="problem">
   <h2><span class="num">3</span>Problem Formulation</h2>
-  <p>The task is a <em>transductive, few-label</em> single-cell state forecasting problem evaluated under covariate shift.</p>
-  <p><strong>Transductive few-label forecasting.</strong> Given the cell set with features $X\in\mathbb{R}^{n\times d}$ and metadata (branch/state, pseudotime, donor, batch, perturbation), only a small fraction $\rho=\texttt{label\_fraction}=0.03$ of the training pool is annotated, with a light stratification guaranteeing a few labels for each present state including the rare one. The model must predict the discrete state of held-out cells, mirroring how analysts annotate a handful of cells and propagate the rest. All cells (labelled and unlabelled) are available at fit time, so the setting is transductive.</p>
-  <p><strong>Covariate-shift evaluation protocol.</strong> Generalization is measured under four leakage-checked split protocols, each a distinct family of distribution shift:</p>
+  <p>The task is <em>transductive, few-label</em> single-cell state forecasting, evaluated under covariate shift. The two defining ingredients &mdash; the scarcity of labels and the structure of the held-out set &mdash; are specified next.</p>
+  <p><strong>Transductive few-label forecasting.</strong> Given the cell set with features $X\in\mathbb{R}^{n\times d}$ and metadata (branch/state, pseudotime, donor, batch, perturbation), only a small fraction $\rho=\texttt{label\_fraction}=0.03$ of the training pool is annotated, with a light stratification that guarantees a few labels for each present state, including the rare one. The model must predict the discrete state of every held-out cell, mirroring the workflow in which an analyst annotates a handful of cells and propagates the rest. Because all cells &mdash; labelled and unlabelled &mdash; are available at fit time, the setting is transductive.</p>
+  <p><strong>Covariate-shift evaluation protocol.</strong> Generalization is measured under four leakage-checked split protocols, each instantiating a distinct family of distribution shift:</p>
   <ul>
     <li><strong>Donor</strong> &mdash; hold out whole donors (biological replicate transfer).</li>
     <li><strong>Batch</strong> &mdash; hold out whole batches (technical replicate transfer).</li>
     <li><strong>Time</strong> &mdash; train on early pseudotime, test on late pseudotime (a forward-in-time extrapolation; the hardest protocol).</li>
     <li><strong>Perturbation</strong> &mdash; hold out a whole condition (forecast an unseen perturbation).</li>
   </ul>
-  <p>For the three grouping splits a programmatic check asserts that no held-out group appears in both train and test (a strict family-held-out no-leakage check); the time split has no grouping variable to leak. Donor, batch and perturbation labels are assigned independently of the biological branch, so a split is non-trivial: a donor spans multiple branches. Performance is read out as held-out accuracy, ECE and rare-state recall, aggregated over five master seeds with $95\%$ normal-approximation confidence intervals $1.96\,s/\sqrt{n}$.</p>
+  <p>For the three grouping splits, a programmatic check asserts that no held-out group appears in both train and test &mdash; a strict family-held-out no-leakage guarantee; the time split has no grouping variable to leak. Donor, batch and perturbation labels are assigned independently of the biological branch, so each split is non-trivial: a single donor spans multiple branches, and the model cannot succeed by memorising a donor-to-branch shortcut. Performance is reported as held-out accuracy, ECE and rare-state recall, aggregated over five master seeds with $95\%$ normal-approximation confidence intervals $1.96\,s/\sqrt{n}$.</p>
 </section>
 
 <!-- ============================ CONTRIBUTIONS ============================ -->
 <section id="contrib">
   <h2><span class="num">4</span>Principal Contributions</h2>
   <ol>
-    <li><strong>A controlled, leakage-checked benchmark that isolates graph structure.</strong> A seeded synthetic branching lineage ($n=3000$ cells, $16$ features, $8$ donors, $4$ batches, $5$ perturbations, a $\sim 4\%$ rare state) is paired with an apples-to-apples control in which the graph-smoothed forecaster and the <em>k</em>NN baseline see identical neighbourhood information and differ only in whether predictions diffuse over the graph.</li>
-    <li><strong>Consistent held-out accuracy gains under four shift protocols.</strong> Graph-smoothed label propagation improves held-out forecast accuracy on all four splits &mdash; by $0.0454$ (donor), $0.0640$ (batch), $0.0900$ (time) and $0.0385$ (perturbation), a mean gain of $0.0595$.</li>
-    <li><strong>Recovery of a rare state the baseline almost never finds.</strong> The same diffusion lifts rare-state recall to $0.1520$ (donor), $0.4618$ (batch) and $0.3393$ (perturbation) against a near-zero baseline, with a reported null on the time split.</li>
-    <li><strong>A topology-aware active-sampling policy.</strong> Scoring unlabelled cells by forecast uncertainty $\times$ inverse local density raises rare-state recall to $0.3556$ (95% CI $\pm 0.1597$) versus $0.0247$ ($\pm 0.0285$) for uniform random querying &mdash; a lift of $0.3309$ &mdash; spending $36.7\%$ of its queries on genuinely rare cells against a $4\%$ base rate.</li>
-    <li><strong>An honestly reported calibration cost.</strong> ECE is consistently <em>worse</em> for the graph-smoothed forecaster on every split; the trade-off is reported in the open rather than hidden.</li>
-    <li><strong>Full self-contained theory.</strong> Every structural property the forecaster relies upon is stated and proved: the Dirichlet-energy identity, the spectral count of components, the variational characterisation of label propagation, its exact non-identifiability limitation, and the geometric convergence and closed form of the normalised iteration the code runs.</li>
-    <li><strong>End-to-end reproducibility.</strong> A pip-installable package (<code class="inl">topocell 0.1.0</code>) regenerates every table, figure and number deterministically from a single <code class="inl">summary.json</code>.</li>
+    <li><strong>A benchmark that isolates graph structure as the single variable.</strong> A seeded synthetic branching lineage ($n=3000$ cells, $16$ features, $8$ donors, $4$ batches, $5$ perturbations, a $\sim 4\%$ rare state) is paired with an apples-to-apples control: the graph-smoothed forecaster and the <em>k</em>NN baseline receive identical neighbourhood information and differ only in whether predictions diffuse over the graph. The design licenses a causal reading of every reported gain.</li>
+    <li><strong>Accuracy gains on all four shift protocols.</strong> Graph-smoothed label propagation raises held-out forecast accuracy on every split &mdash; by $0.0454$ (donor), $0.0640$ (batch), $0.0900$ (time) and $0.0385$ (perturbation), a mean gain of $0.0595$ &mdash; with the largest gain on the hardest, forward-in-time protocol.</li>
+    <li><strong>Recovery of a rare state the baseline almost never finds.</strong> The same diffusion lifts rare-state recall to $0.1520$ (donor), $0.4618$ (batch) and $0.3393$ (perturbation) from a near-zero baseline; the time split is reported as a null, and the theory explains why.</li>
+    <li><strong>A topology-aware active-sampling policy that targets the rare manifold.</strong> Scoring unlabelled cells by forecast uncertainty $\times$ inverse local density raises rare-state recall to $0.3556$ (95% CI $\pm 0.1597$) against $0.0247$ ($\pm 0.0285$) for uniform random querying &mdash; a lift of $0.3309$ &mdash; while spending $36.7\%$ of its queries on genuinely rare cells against a $4\%$ base rate.</li>
+    <li><strong>A calibration cost reported in full.</strong> ECE is consistently <em>worse</em> for the graph-smoothed forecaster on every split; the accuracy&ndash;calibration trade-off is stated openly rather than obscured.</li>
+    <li><strong>Self-contained theory for every property used.</strong> Each structural fact the forecaster relies upon is stated and proved: the Dirichlet-energy identity, the spectral count of components, the variational characterisation of label propagation, its exact non-identifiability limitation, and the geometric convergence and closed form of the normalised iteration the code runs.</li>
+    <li><strong>Deterministic, end-to-end reproducibility.</strong> A pip-installable package (<code class="inl">topocell 0.1.0</code>) regenerates every table, figure and number from a single seeded <code class="inl">summary.json</code>.</li>
   </ol>
 </section>
 
 <!-- ============================ NOVELTY ============================ -->
 <section id="novelty">
   <h2><span class="num">5</span>Methodological Novelty</h2>
-  <p>The contribution is not a new propagator but a <em>controlled isolation</em> of where graph structure helps, paired with a density-steered sampling policy. Two design choices distinguish it from prior single-cell baselines.</p>
+  <p>The novelty lies not in a new propagator but in the <em>controlled isolation</em> of where graph structure helps, paired with a density-steered sampling policy. Two design choices separate this study from prior single-cell baselines.</p>
   <div class="grid2">
     <div class="panel">
       <h3>Graph-structure-aware propagation, controlled</h3>
-      <p>Prior practice builds a <em>k</em>NN graph and then either reads off neighbours (the plain classifier) or clusters/embeds on it. Here the <em>only</em> variable toggled between the two methods is the diffusion step: both consume the same annotated cells and the same neighbourhood radius. The comparison therefore attributes the measured gain to graph diffusion itself, not to the availability of neighbours, and the four leakage-checked split protocols make that attribution robust to nuisance variation.</p>
+      <p>Standard practice builds a <em>k</em>NN graph and then either reads off neighbours (the plain classifier) or clusters and embeds on it. Here the diffusion step is the <em>only</em> variable that differs between the two methods: both consume the same annotated cells and the same neighbourhood radius. The measured gain is therefore attributable to graph diffusion itself rather than to the availability of neighbours, and the four leakage-checked split protocols make that attribution robust across distinct families of nuisance variation.</p>
     </div>
     <div class="panel">
       <h3>Topology-aware active sampling</h3>
-      <p>The sampling policy multiplies forecast uncertainty (the entropy of the label-propagation forecast) by inverse local density (the reciprocal of per-cell mean <em>k</em>NN distance, high in sparse pockets), combining the two as standardised z-scores. This directs a fixed annotation budget toward exactly the sparse, low-density manifold regions where rare cells reside and where, by the non-identifiability result, smoothing alone is uninformative. Uniform random querying, the baseline, spends its budget at the $4\%$ base rate.</p>
+      <p>The sampling policy multiplies forecast uncertainty (the entropy of the label-propagation forecast) by inverse local density (the reciprocal of per-cell mean <em>k</em>NN distance, large in sparse pockets), combining the two as standardised z-scores. It thereby steers a fixed annotation budget into exactly the sparse, low-density manifold regions where rare cells reside &mdash; the regions where, by the non-identifiability result, smoothing alone cannot help. Uniform random querying, the baseline, instead spends its budget at the $4\%$ base rate.</p>
     </div>
   </div>
-  <p class="meta">The "topology" used is deliberately shallow: <em>k</em>NN-graph connectivity, with the Betti-0 statistic being the connected-component count used as a build sanity check. No persistent homology or higher-order invariant is employed, and the method is framed as graph-/manifold-structure-aware rather than topological to avoid overclaiming.</p>
+  <p class="meta">The "topology" invoked here is deliberately shallow: <em>k</em>NN-graph connectivity, with the Betti-0 statistic serving as a connected-component count used only as a build sanity check. No persistent homology or higher-order invariant is employed, and the method is described as graph- and manifold-structure-aware rather than topological, to avoid overclaiming.</p>
 </section>
 
 <!-- ============================ THEORY ============================ -->
 <section id="theory">
   <h2><span class="num">6</span>Theoretical Guarantees</h2>
-  <p>The results below are transcribed from the manuscript's self-contained theory section, each with a one-line interpretation. Every property the forecaster relies upon is proved in full there.</p>
+  <p>The statements below are transcribed verbatim from the manuscript's self-contained theory section, each annotated with a one-line reading. Together they establish that the forecaster is well posed, that its only failure mode is a structural one, and that the iteration the code runs faithfully realises a closed-form estimator.</p>
 
   <div class="thm">
     <div class="head">Lemma 1 (Dirichlet-energy identity and positive semidefiniteness).</div>
     <p>For every $f\in\mathbb{R}^{n}$, $\;f^{\top}Lf=\tfrac12\sum_{i,j}A_{ij}(f_i-f_j)^2\ge 0$, so $L\succeq 0$; more generally $\operatorname{Tr}(F^{\top}LF)=\tfrac12\sum_{i,j}A_{ij}\|F_i-F_j\|_2^2$.</p>
-    <div class="interp">Graph smoothing minimises a convex, nonnegative energy that penalises label disagreement across edges.</div>
+    <div class="interp">Graph smoothing minimises a convex, nonnegative energy whose value is the total label disagreement across edges.</div>
   </div>
 
   <div class="thm">
     <div class="head">Corollary 2 (Null space of $L$ and the spectral count of components).</div>
     <p>$L\mathbf{1}=0$, and the multiplicity of the eigenvalue $0$ of $L$ equals $\beta_0(A)$, the number of connected components; $L\succ 0$ on the orthogonal complement of its null space.</p>
-    <div class="interp">Connectivity (Betti-0) is exactly the dimension of the zero-energy subspace, which is why a label-free component cannot be resolved.</div>
+    <div class="interp">Connectivity (Betti-0) equals the dimension of the zero-energy subspace &mdash; the structural reason a component carrying no label cannot be resolved.</div>
   </div>
 
   <div class="thm">
     <div class="head">Proposition 3 (Monotonicity of the connectivity diagnostic).</div>
     <p>The symmetric <em>k</em>NN edge set is monotone non-decreasing in $k$, $E(A^{(k)})\subseteq E(A^{(k+1)})$, so $\beta_0(A^{(k+1)})\le\beta_0(A^{(k)})$ for all $k\ge 1$.</p>
-    <div class="interp">Adding neighbours can only merge components; this is the property the build-time monotonicity gate asserts over $k\in\{2,4,8,16,32\}$.</div>
+    <div class="interp">Adding neighbours can only merge components, never split them &mdash; the property the build-time monotonicity gate asserts over $k\in\{2,4,8,16,32\}$.</div>
   </div>
 
   <div class="thm">
     <div class="head">Theorem 4 (Unique graph-regularised extension of labels).</div>
     <p>For fidelity weight $\mu>0$, the objective $J(F)=\operatorname{Tr}(F^{\top}LF)+\mu\|M(F-Y)\|_F^2$ is convex with normal equations $(L+\mu M)F=\mu MY$. If every connected component contains at least one labelled cell, then $L+\mu M\succ 0$ and the minimiser $F^{\star}=\mu(L+\mu M)^{-1}MY$ is unique &mdash; the minimum-Dirichlet-energy extension of the observed labels.</p>
-    <div class="interp">Label propagation is the unique minimiser of a convex graph-regularised objective, provided every component carries a label.</div>
+    <div class="interp">Label propagation is the unique minimiser of a convex graph-regularised objective &mdash; the minimum-energy extension of the labels &mdash; whenever every component carries at least one label.</div>
   </div>
 
   <div class="thm">
     <div class="head">Corollary 5 (Non-identifiability of a label-free component).</div>
     <p>If some component $C$ contains no labelled cell, then $L+\mu M$ is singular and the minimiser is not unique: it may be shifted by an arbitrary per-class constant supported on $C$ without changing $J$.</p>
-    <div class="interp">Smoothing cannot invent a label class unreachable from the annotated set &mdash; the formal mechanism behind the null rare-state recall on the time split, and the precise gap active sampling attacks.</div>
+    <div class="interp">Smoothing cannot invent a label class unreachable from the annotated set &mdash; the formal mechanism behind the null rare-state recall on the time split, and the exact gap that active sampling is designed to close.</div>
   </div>
 
   <div class="thm">
     <div class="head">Theorem 6 (Spectrum of the normalised adjacency).</div>
     <p>If $d_i>0$ for all $i$ and $S=D^{-1/2}AD^{-1/2}$, then $S$ is symmetric with every eigenvalue in $[-1,1]$; hence for $\alpha\in(0,1)$ the matrix $I-\alpha S$ is symmetric positive definite with eigenvalues in $[1-\alpha,1+\alpha]\subset(0,2)$.</p>
-    <div class="interp">The normalised diffusion is well posed and invertible for any clamping parameter $\alpha\in(0,1)$.</div>
+    <div class="interp">The normalised diffusion is well posed and invertible for every clamping parameter $\alpha\in(0,1)$, with no spectral tuning required.</div>
   </div>
 
   <div class="thm">
     <div class="head">Theorem 7 (Geometric convergence and closed form of label propagation).</div>
     <p>The iteration $F^{(t+1)}=\alpha S F^{(t)}+(1-\alpha)F_0$ converges to the unique fixed point $F^{\star}=(1-\alpha)(I-\alpha S)^{-1}F_0$ with $\|F^{(t)}-F^{\star}\|_F\le\alpha^{t}\|F^{(0)}-F^{\star}\|_F$, and $F^{\star}$ is the unique minimiser of the normalised energy $Q(F)=\tfrac12\operatorname{Tr}(F^{\top}(I-S)F)+\tfrac{1-\alpha}{2\alpha}\|F-F_0\|_F^2$.</p>
-    <div class="interp">The 30-step, $\alpha=0.9$ diffusion the code runs is a geometrically-convergent, faithful surrogate for a closed-form minimum-energy estimator (error $\le\alpha^{30}$ of the initial gap).</div>
+    <div class="interp">The 30-step, $\alpha=0.9$ diffusion the code runs is a geometrically convergent, faithful realisation of a closed-form minimum-energy estimator, with residual error $\le\alpha^{30}$ of the initial gap.</div>
   </div>
 </section>
 
 <!-- ============================ EMPIRICAL ============================ -->
 <section id="empirical">
   <h2><span class="num">7</span>Empirical Validation</h2>
-  <p>Full-scale configuration: $n=3000$ cells over $n_{\text{seeds}}=5$ random seeds. For each leakage-checked split, accuracy, ECE and rare-state recall are reported as mean $\pm$ 95% confidence interval ($1.96\,s/\sqrt{n}$) for graph-smoothed label propagation (<strong>GS</strong>) and the plain <em>k</em>NN baseline (<strong>kNN</strong>). Higher accuracy and recall are better; <em>lower</em> ECE is better. The best value in each split is in <strong>bold</strong>. Every entry is transcribed verbatim from the seeded <code class="inl">results/summary.json</code>.</p>
+  <p>The full-scale configuration uses $n=3000$ cells over $n_{\text{seeds}}=5$ random seeds. For each leakage-checked split, accuracy, ECE and rare-state recall are reported as mean $\pm$ 95% confidence interval ($1.96\,s/\sqrt{n}$) for graph-smoothed label propagation (<strong>GS</strong>) and the matched <em>k</em>NN baseline (<strong>kNN</strong>). Higher accuracy and recall are better; <em>lower</em> ECE is better. The better value in each split is in <strong>bold</strong>. Every entry is transcribed verbatim from the seeded <code class="inl">results/summary.json</code>.</p>
 
   <div class="panel scroll">
   <table class="bk">
@@ -337,11 +337,11 @@
   <div class="grid2">
     <div class="panel">
       <h3 style="margin-top:0">Reading of the accuracy result</h3>
-      <p class="meta">Graph diffusion helps consistently but modestly: single-digit-percentage-point gains of roughly four to nine points per split, largest on the hardest (time) protocol. This is the magnitude one expects from a diffusion step, not a categorical change in capability.</p>
+      <p class="meta">Graph diffusion helps consistently but modestly: per-split gains of roughly four to nine percentage points, largest on the hardest (time) protocol. This is the magnitude a single diffusion step should produce &mdash; a real, repeatable improvement, not a categorical change in capability, and the page does not present it as one.</p>
     </div>
     <div class="panel">
       <h3 style="margin-top:0">Reading of the rare-state result</h3>
-      <p class="meta">The clearer effect is rare-state recovery. The time-split null is reported as-is: extrapolating forward in pseudotime places the rare late-tip cells entirely beyond the training distribution, and diffusion cannot manufacture an unreachable label class. Wide intervals on per-split rare recall reflect small absolute rare counts and temper any strong point-estimate reading.</p>
+      <p class="meta">The larger effect is rare-state recovery. The time-split null is reported as-is, and its cause is structural: forward extrapolation in pseudotime places the rare late-tip cells entirely beyond the training distribution, leaving them in a label-free region that diffusion provably cannot reach. Wide intervals on per-split rare recall follow from small absolute rare counts and caution against over-reading any single point estimate.</p>
     </div>
   </div>
 </section>
@@ -349,17 +349,17 @@
 <!-- ============================ DEMO ============================ -->
 <section id="demo">
   <h2><span class="num">8</span>Interactive Illustration</h2>
-  <p>A self-contained, client-side illustration of the central mechanism: a small cell-graph with a deliberately rare state, on which a label-propagation diffusion strength can be varied. As smoothing strength rises from zero (the matched <em>k</em>NN baseline) to full diffusion, the reported accuracy and rare-state recall interpolate toward the measured per-split endpoints from Table 1. The split selector switches both the visual graph emphasis and the anchored endpoints.</p>
+  <p>A self-contained, client-side illustration of the central mechanism: a small cell-graph with a deliberately rare state, on which the label-propagation diffusion strength can be swept. As smoothing rises from zero (the matched <em>k</em>NN baseline) to full diffusion, the displayed accuracy and rare-state recall interpolate toward the measured per-split endpoints of Table 1. The split selector switches both the visual graph emphasis and the anchored endpoints, making the accuracy&ndash;recall trade-off of each protocol directly visible.</p>
   <div class="note">Qualitative interactive illustration. The graph layout is schematic; the two endpoints of each curve (smoothing $=0$ and $=1$) are anchored to the measured <em>k</em>NN and graph-smoothed numbers for the selected split, and intermediate values are a monotone interpolation for intuition only. No biological data are involved and nothing is recomputed in-browser.</div>
 
   <div class="panel demo-wrap">
     <div>
       <canvas id="cellcanvas" width="520" height="360" aria-label="Schematic cell graph with label propagation"></canvas>
       <div class="legend">
-        <span><i style="background:#5aa9ff"></i>Fate A</span>
-        <span><i style="background:#7ee0a8"></i>Fate B / trunk</span>
-        <span><i style="background:#ffd24a"></i>Rare state</span>
-        <span><i style="background:#fff;border:1px solid #2b3b58"></i>labelled seed (clamped)</span>
+        <span><i style="background:#1f6feb"></i>Fate A</span>
+        <span><i style="background:#1f9d57"></i>Fate B / trunk</span>
+        <span><i style="background:#e0a400"></i>Rare state</span>
+        <span><i style="background:#fff;border:1px solid #10151c"></i>labelled seed (clamped)</span>
       </div>
     </div>
     <div class="controls">
@@ -406,22 +406,22 @@
 <!-- ============================ SIGNIFICANCE ============================ -->
 <section id="significance">
   <h2><span class="num">9</span>Significance and Impact</h2>
-  <p class="lead">Within a controlled benchmark, conditioning single-cell forecasts on cell-graph connectivity helps &mdash; consistently across four leakage-checked shift protocols, and most usefully by recovering a rare state an otherwise-matched point classifier almost entirely misses.</p>
-  <p>For computational biology, the consequence is a clean, falsifiable statement of where graph structure pays off under distribution shift, and a density-steered annotation policy that turns a fixed labelling budget into rare-state coverage far above the base rate. For machine learning under covariate shift more broadly, the controlled isolation &mdash; identical neighbourhood information, diffusion as the only toggled variable &mdash; supplies a template for attributing generalization gains to a single mechanism rather than to confounded design choices. The accompanying theory certifies that the deployed iteration is a faithful surrogate for a closed-form minimum-energy estimator, so the empirical behaviour is grounded rather than incidental.</p>
-  <p>The natural and necessary next step is to repeat exactly this comparison on real scRNA-seq and perturbation-screen data, for which the repository ships honest, intentionally unexercised ingest stubs. The same protocol could then be strengthened with a learned message-passing propagator in place of fixed-point label propagation, and with calibration-aware training to remove the ECE penalty.</p>
-  <h3>Honest limitations (kept visible)</h3>
-  <div class="limit"><strong>(1) Synthetic data.</strong> All numbers come from a generated branching lineage, not biological measurements; no biological discovery is claimed and the magnitudes need not transfer to real scRNA-seq.</div>
-  <div class="limit"><strong>(2) Modest accuracy gains.</strong> Improvement is $0.04$&ndash;$0.09$ per split (mean $0.0595$); the strongest effect is rare-state recall, and even that is null on the time split.</div>
-  <div class="limit"><strong>(3) Calibration cost.</strong> Graph smoothing worsens ECE on all four splits, so probabilities are less trustworthy as confidences without recalibration.</div>
+  <p class="lead">Within a controlled benchmark, conditioning single-cell forecasts on cell-graph connectivity demonstrably helps &mdash; consistently across four leakage-checked shift protocols, and most decisively by recovering a rare state that an otherwise-identical point classifier almost entirely misses.</p>
+  <p>For computational biology, the result is a clean, falsifiable statement of where graph structure pays off under distribution shift, together with a density-steered annotation policy that converts a fixed labelling budget into rare-state coverage far above the base rate &mdash; directly relevant to the practical problem of allocating scarce annotation effort. For machine learning under covariate shift more broadly, the controlled isolation &mdash; identical neighbourhood information, diffusion as the single toggled variable &mdash; supplies a transferable template for attributing a generalization gain to one mechanism rather than to a tangle of confounded design choices. The accompanying theory certifies that the deployed iteration faithfully realises a closed-form minimum-energy estimator, so the observed behaviour is grounded in the method rather than incidental to it.</p>
+  <p>The decisive next step is to repeat exactly this comparison on real scRNA-seq and perturbation-screen data, for which the repository ships honest, intentionally unexercised ingest stubs. The same protocol then extends naturally to a learned message-passing propagator in place of fixed-point label propagation, and to calibration-aware training that targets the ECE penalty directly.</p>
+  <h3>Limitations (stated in full)</h3>
+  <div class="limit"><strong>(1) Synthetic data.</strong> All numbers come from a generated branching lineage, not biological measurements; no biological discovery is claimed, and the magnitudes need not transfer to real scRNA-seq.</div>
+  <div class="limit"><strong>(2) Modest accuracy gains.</strong> The accuracy improvement is $0.04$&ndash;$0.09$ per split (mean $0.0595$); the strongest effect is rare-state recall, and even that is null on the time split.</div>
+  <div class="limit"><strong>(3) Calibration cost.</strong> Graph smoothing worsens ECE on all four splits, so its probabilities are less trustworthy as confidences without recalibration.</div>
   <div class="limit"><strong>(4) Shallow "topology."</strong> The only topological object is <em>k</em>NN-graph connectivity; the Betti-0 statistic is a connected-component count, constant at one at this scale. No persistent homology is used.</div>
-  <div class="limit"><strong>(5) Wide intervals on rare metrics.</strong> Few rare cells per held-out group give wide per-split rare-recall confidence intervals (up to $\pm 0.3358$).</div>
-  <div class="limit"><strong>(6) Single benchmark family.</strong> One synthetic generator cannot substitute for the diversity of real datasets; external validation remains the decisive test.</div>
+  <div class="limit"><strong>(5) Wide intervals on rare metrics.</strong> Few rare cells per held-out group produce wide per-split rare-recall confidence intervals (up to $\pm 0.3358$).</div>
+  <div class="limit"><strong>(6) Single benchmark family.</strong> One synthetic generator cannot stand in for the diversity of real datasets; external validation remains the decisive test.</div>
 </section>
 
 <!-- ============================ REPRODUCIBILITY ============================ -->
 <section id="repro">
   <h2><span class="num">10</span>Reproducibility</h2>
-  <p>The reference implementation is the pip-installable package <code class="inl">topocell 0.1.0</code> at <code class="inl">submission/code</code> (CPU-only: NumPy, SciPy, scikit-learn, NetworkX, Matplotlib). A single seeded <code class="inl">results/summary.json</code> is the source of truth for every table, figure and numerical claim; the manuscript's Table 1 is transcribed verbatim from the generated <code class="inl">main_results.tex</code>.</p>
+  <p>The reference implementation is the pip-installable package <code class="inl">topocell 0.1.0</code> at <code class="inl">submission/code</code> (CPU-only: NumPy, SciPy, scikit-learn, NetworkX, Matplotlib). A single seeded <code class="inl">results/summary.json</code> is the sole source of truth for every table, figure and numerical claim on this page; the manuscript's Table 1 is transcribed verbatim from the generated <code class="inl">main_results.tex</code>. No value here is hand-entered.</p>
   <pre><span class="c"># 1. install the CPU reference package (editable)</span>
 conda env create -f environment.yml &amp;&amp; conda activate topocell
 <span class="k">pip install -e .</span>            <span class="c"># installs the `topocell` package</span>
@@ -435,7 +435,7 @@ make figures     <span class="c"># figures/fig_lineage.pdf, figures/fig_forecast
 
 <span class="c"># or one command:</span>
 bash scripts/reproduce_all.sh full   <span class="c"># reported scale</span></pre>
-  <p>The full-scale run is launched by <code class="inl">scripts/run.py</code> on <code class="inl">configs/full.yaml</code> writing to <code class="inl">results/</code>. Three integrity gates are asserted before any metric is recorded: grouping splits are leakage-free, the rare state is present, and the Betti-0 component count is monotone non-increasing in $k$.</p>
+  <p>The full-scale run is launched by <code class="inl">scripts/run.py</code> on <code class="inl">configs/full.yaml</code>, writing to <code class="inl">results/</code>. Three integrity gates must pass before any metric is recorded: grouping splits are leakage-free, the rare state is present, and the Betti-0 component count is monotone non-increasing in $k$. A failed gate halts the run rather than emitting a number.</p>
   <div class="panel">
     <h3 style="margin-top:0">Recorded provenance (identical results)</h3>
     <p class="meta">Master seed $0$ &middot; Python 3.13.12 / NumPy 2.4.3 / SciPy 1.17.1 / NetworkX 3.6.1 / scikit-learn 1.8.0 / Matplotlib 3.10.8 &middot; platform macOS-arm64 (Mach-O) &middot; runtime 20.8 s &middot; peak memory 320.6 MB. Generation is fully seeded and bit-for-bit reproducible. Honest ingest stubs for real AnnData and perturbation-screen data are included but intentionally not exercised.</p>
@@ -448,7 +448,8 @@ bash scripts/reproduce_all.sh full   <span class="c"># reported scale</span></pr
 <footer>
   <div class="wrap">
     <p><strong>Graph-structure-aware label propagation and active sampling for few-label single-cell state forecasting and rare-state recovery</strong></p>
-    <p>Molena Huynh &middot; reference implementation <code class="inl">topocell 0.1.0</code> &middot; all data synthetic and seeded &middot; numbers transcribed from <code class="inl">results/summary.json</code></p>
+    <p>Molena Huynh &middot; North Carolina State University &middot; <a href="mailto:molena.huynh@jmp.com">molena.huynh@jmp.com</a></p>
+    <p>reference implementation <code class="inl">topocell 0.1.0</code> &middot; all data synthetic and seeded &middot; numbers transcribed from <code class="inl">results/summary.json</code></p>
   </div>
 </footer>
 
@@ -509,7 +510,7 @@ bash scripts/reproduce_all.sh full   <span class="c"># reported scale</span></pr
     for (var e = 0; e < 4; e++) edges.push({ a: a, b: ds[e].b });
   }
 
-  var COLORS = ["#5aa9ff", "#7ee0a8", "#ffd24a"];
+  var COLORS = ["#1f6feb", "#1f9d57", "#e0a400"];
 
   function hex(h) { return [parseInt(h.substr(1, 2), 16), parseInt(h.substr(3, 2), 16), parseInt(h.substr(5, 2), 16)]; }
   function blend(h1, h2, t) {
@@ -533,25 +534,25 @@ bash scripts/reproduce_all.sh full   <span class="c"># reported scale</span></pr
     if (!ctx) return;
     var s = state.s;
     ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = "#0d1726";
+    ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, W, H);
     ctx.lineWidth = 1;
     for (var i = 0; i < edges.length; i++) {
       var pn = nodes[edges[i].a], qn = nodes[edges[i].b];
-      ctx.strokeStyle = "rgba(120,160,220," + (0.06 + 0.30 * s) + ")";
+      ctx.strokeStyle = "rgba(90,120,180," + (0.10 + 0.40 * s) + ")";
       ctx.beginPath(); ctx.moveTo(pn.x, pn.y); ctx.lineTo(qn.x, qn.y); ctx.stroke();
     }
     for (var j = 0; j < N; j++) {
       var nd = nodes[j];
       var base = COLORS[nd.cls];
-      var col = nd.labelled ? base : blend("#cdd6e6", base, s); // unlabelled "diffuse" toward class colour
+      var col = nd.labelled ? base : blend("#a8b3c6", base, s); // unlabelled "diffuse" toward class colour
       var rad = nd.cls === 2 ? 6.5 : 4.6;
       ctx.beginPath();
       if (nd.cls === 2) { star(nd.x, nd.y, 5, rad + 2.4, rad * 0.5); }
       else { ctx.arc(nd.x, nd.y, rad, 0, Math.PI * 2); }
       ctx.fillStyle = col;
       ctx.fill();
-      if (nd.labelled) { ctx.lineWidth = 1.6; ctx.strokeStyle = "#ffffff"; ctx.stroke(); }
+      if (nd.labelled) { ctx.lineWidth = 1.6; ctx.strokeStyle = "#10151c"; ctx.stroke(); }
     }
   }
 

@@ -22,7 +22,7 @@
 \newtheorem{remark}[theorem]{Remark}
 \theoremstyle{plain}
 \title{\bfseries\LARGE Graph-structure-aware label propagation and active sampling for few-label single-cell state forecasting and rare-state recovery}
-\author[ ]{Molena Huynh}\affil[ ]{[Affiliation to be completed before submission] \quad\textperiodcentered\quad Correspondence: \texttt{[corresponding-author email]}}
+\author[ ]{Molena Huynh}\affil[ ]{North Carolina State University \quad\textperiodcentered\quad Correspondence: \texttt{molena.huynh@jmp.com}}
 \date{}
 \begin{document}\maketitle\thispagestyle{fancy}
 
@@ -38,10 +38,17 @@ fully controlled \emph{synthetic} branching lineage with donor, batch, perturbat
 metadata and a deliberately rare subpopulation ($\sim$\SI{4}{\percent} of cells), and evaluate two
 method pairs under four leakage-checked split protocols (donor, batch, time and perturbation
 transfer). Graph-smoothed label propagation on the cell $k$NN graph improves held-out forecast
-accuracy over an apples-to-apples plain $k$NN classifier on all four splits---by \num{0.0454}
+accuracy over a plain $k$NN classifier on all four splits---by \num{0.0454}
 (donor: \num{0.7004} vs \num{0.6550}), \num{0.0640} (batch: \num{0.6995} vs \num{0.6355}),
 \num{0.0900} (time: \num{0.5474} vs \num{0.4574}) and \num{0.0385} (perturbation: \num{0.6875} vs
-\num{0.6490}); the mean gain across splits is \num{0.0595}. The same diffusion recovers a rare
+\num{0.6490}); the mean gain across splits is \num{0.0595}. We caution up front that this
+headline is \emph{not} a clean measurement of graph diffusion: the label-propagation forecaster
+is \emph{transductive} (it builds the $k$NN graph over all cells and so sees the held-out cells'
+connectivity at inference), whereas the plain $k$NN baseline is \emph{inductive} (fit on training
+cells only). The accuracy gap is therefore confounded by this transductive-versus-inductive
+asymmetry rather than attributable to diffusion alone; a fair inductive control (e.g.\ label
+spreading restricted to the training graph) is not yet run in the accompanying repository, and we
+flag the \num{0.0595} figure as an upper bound to be read with this caveat. The same diffusion recovers a rare
 state that the baseline almost never finds (rare-state recall up to \num{0.4618} on the batch split
 versus near-zero), and a topology-aware active-sampling policy (uncertainty $\times$ inverse local
 density) raises rare-state recall to \num{0.3556} versus \num{0.0247} for random querying. These
@@ -75,12 +82,29 @@ A complementary lever is to choose \emph{which} cells to annotate. Active learni
 informativeness is combined with a manifold-density signal it can be steered toward the sparse
 regions where rare states live.
 
+This final manuscript in the ordered series transfers the same graph-conditioned,
+uncertainty-aware and resource-accounted style from quantum applications to a
+biomedical graph problem.  Earlier papers in the sequence develop
+graph-conditioned QAOA, topology-conditioned QAOA, commutator-graph Hamiltonian
+simulation, learned Trotter residuals, CPTP-constrained open-system
+identification, drift monitoring, selective QEC decoding, covariance-aware
+hybrid surface-code decoding and gauge-equivariant syndrome-bundle
+decoding~\cite{huynh2026uqqaoa,huynh2026topoqaoa,huynh2026topoham,huynh2026liergtc,huynh2026cptppinn,huynh2026drift,huynh2026selectiveqec,huynh2026covdec,huynh2026lagnos}.
+The Hamiltonian-simulation papers of Nguyen and Jing supply the required
+fixed-depth and representation-theoretic quantum context for the
+series~\cite{nguyen2025zassenhaus,jing2026complexity}.  The present manuscript does
+not make a quantum-hardware claim; it carries the graph and active-query design
+principles into a synthetic single-cell forecasting benchmark.
+
 We do not claim a new algorithm. Instead we isolate, under controlled and leakage-checked
 conditions, the value of \emph{graph structure} for single-cell forecasting by holding the
 neighbourhood information fixed and toggling only whether the model diffuses over the graph.
 Concretely: (i) we compare graph-smoothed label propagation against a plain $k$NN classifier that
-sees the same neighbourhood radius but performs no diffusion, so the comparison isolates the
-diffusion step rather than the mere availability of neighbours; and (ii) we compare a
+sees the same neighbourhood radius but performs no diffusion. We are explicit that this comparison
+does \emph{not} cleanly isolate diffusion: the propagation forecaster is transductive (it builds the
+graph over all cells, including the held-out set) while the $k$NN baseline is inductive (training
+cells only), so the measured gap mixes the diffusion step with a transductive information advantage
+and overstates the value of diffusion per se (Sec.~\ref{sec:confound}); and (ii) we compare a
 topology-aware active-sampling policy---uncertainty times inverse local density---against uniform
 random querying for rare-state recall. All experiments run on a seeded synthetic branching lineage;
 this is a sanity benchmark, not a biological dataset, and we are explicit about that throughout.
@@ -144,6 +168,24 @@ time split---the hardest protocol, because it extrapolates forward along pseudot
 \num{0.6587} accuracy against \num{0.5992} for the baseline, a mean gain of \num{0.0595}. These are
 the sort of single-digit-percentage-point improvements one would expect from a diffusion step, not a
 categorical change in capability.
+
+\paragraph{A transductive-versus-inductive confound inflates the headline.}
+\label{sec:confound}
+This accuracy gain must be read with one structural caveat that we did not control for. The
+label-propagation forecaster builds the $k$NN graph over \emph{all} cells and diffuses the training
+labels across it (\texttt{policy.py}, \texttt{LabelPropagationForecaster}); it therefore observes the
+held-out cells' features and graph connectivity at inference time and is \emph{transductive}. The
+$k$NN baseline, by contrast, is fit on the labelled training cells only and is \emph{inductive}. The
+two methods thus differ in \emph{two} ways at once---diffusion versus no diffusion, \emph{and}
+transductive versus inductive access to the test set---so the \num{0.0595} mean gap is not a clean
+estimate of the value of diffusion. The honest reading is that a substantial share of the headline is
+plausibly this information asymmetry rather than diffusion, and that the diffusion-specific effect
+measured against a matched \emph{inductive} graph control (for example label spreading restricted to
+the training graph, or out-of-sample extension of the propagated field) would be materially smaller.
+We do not report such a control because it is not yet implemented in the accompanying repository; we
+flag this as the primary methodological gap and treat \num{0.0595} as an upper bound on the
+diffusion-attributable gain. The rare-state-recall and active-sampling effects below are reported
+under the same transductive setting and inherit the same caveat.
 
 \subsection{Diffusion and active sampling recover a rare state the baseline misses}
 The clearer effect is on the rare state (Fig.~\ref{fig:forecast}b,c). The plain $k$NN baseline
@@ -674,9 +716,14 @@ We list the limitations plainly because they bound every claim above.
 \textbf{(1) Synthetic data.} All numbers come from a generated branching lineage, not from
 biological measurements. We make no biological discovery claim, and the magnitudes reported here need
 not transfer to real scRNA-seq, where noise, dropout and confounding are far more severe.
-\textbf{(2) Modest accuracy gains.} The accuracy improvement over the baseline is on the order of
-\numrange{0.04}{0.09} per split (mean \num{0.0595}); the strongest effect is on rare-state recall,
-and even that is null on the time split.
+\textbf{(2) Modest accuracy gains, with a transductive confound.} The accuracy improvement over the
+baseline is on the order of \numrange{0.04}{0.09} per split (mean \num{0.0595}), but this gap is
+confounded: the propagation forecaster is transductive (graph built over all cells, held-out
+connectivity seen at inference) while the $k$NN baseline is inductive (training cells only), so an
+unquantified share of the gain reflects this information asymmetry rather than diffusion
+(Sec.~\ref{sec:confound}). We treat \num{0.0595} as an upper bound and identify a matched inductive
+graph control as the decisive missing experiment. The strongest effect is on rare-state recall, and
+even that is null on the time split.
 \textbf{(3) Calibration cost.} Graph smoothing worsens ECE on all four splits, so the predicted
 probabilities are less trustworthy as confidences without recalibration.
 \textbf{(4) ``Topology'' is shallow.} The only topological object used is the connectivity of the
@@ -724,8 +771,12 @@ $F\leftarrow \alpha S F + (1-\alpha)F_0$ is run for a fixed number of power iter
 $30$ iterations); held-out cells are predicted from the row-normalised diffused scores, with the
 maximum class probability used as the confidence for calibration. The baseline is a plain $k$NN
 classifier in feature space fitted on the same annotated cells with the same $k$, i.e.\ identical
-neighbourhood information \emph{without} diffusion. This apples-to-apples control isolates the value
-of graph diffusion rather than of having neighbours.
+neighbourhood information \emph{without} diffusion. This control matches the neighbourhood radius but,
+importantly, is \emph{inductive} (fit on training cells only) whereas the propagation forecaster is
+\emph{transductive} (it builds the graph over all cells and so sees the held-out connectivity at
+inference). The comparison therefore isolates diffusion only up to this transductive-versus-inductive
+asymmetry, which we flag as a confound on the headline accuracy gap (Sec.~\ref{sec:confound}); a
+matched inductive graph control is the needed next experiment.
 
 \paragraph{Splits and annotation.}
 Four leakage-checked split protocols evaluate transfer across nuisance variables: donor and batch
@@ -895,6 +946,66 @@ A comparison of single-cell trajectory inference methods.
 M.~D. Luecken and F.~J. Theis.
 Current best practices in single-cell RNA-seq analysis: a tutorial.
 \emph{Molecular Systems Biology} \textbf{15}, e8746 (2019).
+
+\bibitem{huynh2026uqqaoa}
+M.~Huynh.
+Query-efficient quantum approximate optimization via graph-conditioned trust regions.
+\emph{arXiv preprint} arXiv:2604.24803 (2026).
+
+\bibitem{huynh2026topoqaoa}
+M.~Huynh.
+Topology-conditioned warm starts match spectral initialization for depth-one QAOA.
+\emph{Manuscript in preparation} (2026).
+
+\bibitem{huynh2026topoham}
+M.~Huynh.
+Commutator-graph term ordering reduces first-order Trotter error at matched gate cost.
+\emph{Manuscript in preparation} (2026).
+
+\bibitem{huynh2026liergtc}
+M.~Huynh.
+Provable operator learning of size-transferable Trotter corrections for Hamiltonian
+simulation.
+\emph{Manuscript in preparation} (2026).
+
+\bibitem{huynh2026cptppinn}
+M.~Huynh.
+CPTP-Compiler-PINNs: structure-preserving residual learning and matrix-free compilation
+for open quantum dynamics.
+\emph{Manuscript in preparation} (2026).
+
+\bibitem{huynh2026drift}
+M.~Huynh.
+Objective-aware sequence modelling for drift forecasting and anomaly detection in quantum
+hardware.
+\emph{Manuscript in preparation} (2026).
+
+\bibitem{huynh2026selectiveqec}
+M.~Huynh.
+Selective and calibrated decoding for quantum error correction.
+\emph{Manuscript in preparation} (2026).
+
+\bibitem{huynh2026covdec}
+M.~Huynh.
+Covariance-aware hybrid decoding of surface codes under spatially and temporally correlated
+noise.
+\emph{Manuscript in preparation} (2026).
+
+\bibitem{huynh2026lagnos}
+M.~Huynh.
+Syndrome fiber bundle: gauge-equivariant neural decoding with calibrated uncertainty for
+correlated quantum noise.
+\emph{Manuscript in preparation} (2026).
+
+\bibitem{nguyen2025zassenhaus}
+M.~Nguyen and N.~Jing.
+Zassenhaus expansion in solving the Schr\"odinger equation.
+\emph{arXiv preprint} arXiv:2505.09441 (2025).
+
+\bibitem{jing2026complexity}
+N.~Jing and M.~Nguyen.
+Complexity bounds for Hamiltonian simulation in unitary representations.
+\emph{arXiv preprint} arXiv:2603.07231 (2026).
 
 \end{thebibliography}
 
@@ -1075,11 +1186,15 @@ surrogate for a message-passing GNN: dropping in a learned propagator
 \paragraph{The honest baseline.} The \texttt{KNNForecaster} is a plain
 $k$-nearest-neighbour classifier in feature space, fitted on the \emph{same}
 labelled cells with the \emph{same} $k$, but with \emph{no} diffusion. It sees
-identical neighbourhood information; the only difference is that it does not let
-labels spread along the graph. Comparing \texttt{LabelPropagation} to this
-baseline isolates the value of graph diffusion, not the mere availability of
-neighbours---the apples-to-apples control that is the methodological spine of the
-paper.
+identical neighbourhood information; the difference is that it does not let
+labels spread along the graph \emph{and} that it is inductive (fit on training
+cells only), whereas \texttt{LabelPropagation} is transductive (it builds the
+graph over all cells and so observes the held-out cells' connectivity at
+inference). Comparing the two therefore measures diffusion only up to this
+transductive-versus-inductive asymmetry, which inflates the headline accuracy gap;
+a matched inductive graph control (e.g.\ label spreading on the training graph
+with out-of-sample extension) is required to attribute the gain to diffusion alone
+(main text, Sec.~\ref{sec:confound}).
 
 \subsection{Splits, leakage and the few-label regime}
 \label{si:splits}
@@ -1190,8 +1305,10 @@ used to build this manuscript.
 Within this controlled synthetic benchmark, conditioning forecasts on $k$NN-graph
 connectivity helps: label propagation beats the matched point classifier on
 held-out accuracy on all four splits (mean gain $\approx\num{0.0595}$, roughly four
-to nine percentage points) and---the clearer effect---recovers a rare state the
-baseline almost never finds. The topology-aware active-sampling policy raises
+to nine percentage points)---though this gap is confounded by the transductive
+(propagation) versus inductive ($k$NN) asymmetry and so is an upper bound on the
+diffusion-attributable gain (Sec.~\ref{sec:confound})---and---the clearer
+effect---recovers a rare state the baseline almost never finds. The topology-aware active-sampling policy raises
 rare-state recall from \num{0.0247} (random) to \num{0.3556}. These gains carry a
 small, consistent calibration penalty (ECE is slightly worse on every split). The
 accuracy gain is real but modest; the headline contribution is rare-state recovery,

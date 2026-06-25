@@ -18,6 +18,7 @@ from . import (  # noqa: F401
     metrics,
     plotting,
     policy,
+    reproduce,
     runner,
     seed,
     splits,

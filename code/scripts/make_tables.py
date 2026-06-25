@@ -34,7 +34,17 @@ def main() -> None:
     lines += [r"\bottomrule", r"\end{tabular}"]
     (tables / "main_results.tex").write_text("\n".join(lines) + "\n")
 
-    print("wrote results/main_results.tex")
+    # Markdown (same numbers; graph-smoothed rows are emphasised for the README).
+    md = ["| split | method | accuracy | ECE | rare-state recall |",
+          "|---|---|---|---|---|"]
+    for split, method, acc, ece, rr in rows:
+        if method == "graph-smoothed":
+            md.append(f"| {split} | **{method}** | **{acc:.4f}** | {ece:.4f} | **{rr:.4f}** |")
+        else:
+            md.append(f"| {split} | {method} | {acc:.4f} | {ece:.4f} | {rr:.4f} |")
+    (tables / "main_results.md").write_text("\n".join(md) + "\n")
+
+    print("wrote results/main_results.tex, results/main_results.md")
     print("\n".join(lines))
 
 

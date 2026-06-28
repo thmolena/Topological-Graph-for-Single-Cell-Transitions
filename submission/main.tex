@@ -287,7 +287,7 @@ four splits and in the mean (\num{0.6856} versus \num{0.6587}), despite operatin
 inductive regime.
 
 \subsection{Directional transport recovers a rare state and rescues forward extrapolation}
-The clearer effect is on the rare state and on the trajectory's forward direction
+The operator's sharpest effect is on the rare state and on the trajectory's forward direction
 [Fig.~\ref{fig:forecast}(b)]. The point classifier essentially never recovers the rare population (mean
 rare-state recall \num{0.0151}); the inductive operator raises it to \num{0.3322}, a \num{0.3171} absolute
 gain, recovering the rare state on the donor (\num{0.3968}), batch (\num{0.5706}), and perturbation
@@ -516,7 +516,7 @@ For every $f\in\mathbb{R}^{n}$, $f^\top L f=\tfrac12\sum_{i,j} A_{ij}(f_i-f_j)^2
 $S=I-D^{-1/2}LD^{-1/2}$ has every eigenvalue in $[-1,1]$.
 \end{lemma}
 \begin{proof}
-Expanding $f^\top Lf=\sum_i d_i f_i^2-\sum_{i,j}A_{ij}f_if_j$ and symmetrizing the diagonal term with
+Both claims reduce to completing the square. Expanding $f^\top Lf=\sum_i d_i f_i^2-\sum_{i,j}A_{ij}f_if_j$ and symmetrizing the diagonal term with
 $A_{ij}=A_{ji}$ gives $f^\top Lf=\tfrac12\sum_{i,j}A_{ij}(f_i-f_j)^2\ge0$ since $A_{ij}\ge0$, so
 $L\succeq0$. The normalized Laplacian $\mathcal L=D^{-1/2}LD^{-1/2}$ is congruent to $L$ through the
 invertible $D^{-1/2}$, hence $\mathcal L\succeq0$ and $S=I-\mathcal L\preceq I$, giving $\lambda(S)\le1$.
@@ -539,7 +539,8 @@ eigenvalues; the low-pass choice is the correct one because the forecaster appli
 $R$, not $S$.)
 \end{theorem}
 \begin{proof}
-Write $S=\sum_j\lambda_j u_ju_j^\top$ with $\lambda_1\ge\cdots\ge\lambda_n$. For a rank-$r$ projector
+We treat the two claims in turn---the energy claim by a Ky Fan trace argument, the filter claim by
+Eckart--Young--Mirsky. Write $S=\sum_j\lambda_j u_ju_j^\top$ with $\lambda_1\ge\cdots\ge\lambda_n$. For a rank-$r$ projector
 $\Pi$, $\operatorname{Tr}(\Pi S)=\sum_j\lambda_j\,u_j^\top\Pi u_j$ with $0\le u_j^\top\Pi u_j\le1$ and
 $\sum_j u_j^\top\Pi u_j=\operatorname{Tr}\Pi=r$; this linear objective over the polytope
 $\{0\le c_j\le1,\sum_j c_j=r\}$ is maximized by putting unit weight on the $r$ largest $\lambda_j$, i.e.,
@@ -576,7 +577,7 @@ in general, with the operator-norm bound $\|[M_\phi^{(r)},M_\psi^{(r)}]\|_2\le 2
 full-rank limit $\Pi_r=I$.
 \end{theorem}
 \begin{proof}
-(i) The diagonal entries of the two products are $(PP^\top)_{ii}=\sum_j P_{ij}^2$ (the squared outgoing
+Both parts are direct computations on the relevant operator products. (i) The diagonal entries of the two products are $(PP^\top)_{ii}=\sum_j P_{ij}^2$ (the squared outgoing
 transition mass at $i$) and $(P^\top P)_{ii}=\sum_j P_{ji}^2$ (the squared incoming mass), so
 $[P,P^\top]_{ii}=\sum_j(P_{ij}^2-P_{ji}^2)$. If $P$ were normal the commutator would vanish, forcing
 $\sum_j P_{ij}^2=\sum_j P_{ji}^2$ at every vertex. Row-stochasticity fixes the row sums $\sum_j P_{ij}=1$
@@ -643,7 +644,8 @@ operative quantity is the spectral radius, which at the reported configuration i
 to the sign gauge of $U_r$.
 \end{theorem}
 \begin{proof}
-If $\rho(\alpha B)<1$ then $\alpha B$ has no eigenvalue equal to $1$, so $I-\alpha B$ is nonsingular and the
+The statement is the contraction-mapping theorem specialized to the Neumann series of $\alpha B$. If
+$\rho(\alpha B)<1$ then $\alpha B$ has no eigenvalue equal to $1$, so $I-\alpha B$ is nonsingular and the
 Neumann series $\sum_{m\ge0}(\alpha B)^m=(I-\alpha B)^{-1}$ converges (its terms decay geometrically once
 $\|(\alpha B)^m\|^{1/m}\to\rho<1$ by Gelfand's formula). Subtracting the fixed-point relation
 $c^\star=\alpha Bc^\star+(1-\alpha)U_r^\top F_0$ from the iteration gives
@@ -719,6 +721,9 @@ event has probability at least $1-\delta$.
 
 \section{Numerical methods and reproducibility}
 \label{sec:methods}
+This appendix collects the configuration, estimators, and evaluation protocols behind every number in the
+main text. All hyperparameters are fixed before evaluation and recorded, together with the platform and
+library versions, in the run artifact \texttt{results/summary.json}.
 
 \paragraph{Synthetic lineage.}
 Cells are generated in an $n_\text{features}$-dimensional space along a tree of three branches (a trunk

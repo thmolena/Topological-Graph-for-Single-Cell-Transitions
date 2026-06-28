@@ -3,7 +3,7 @@
 A pseudotime-directed, spectrally truncated graph operator for few-label single-cell
 state-transition forecasting and rare-state recovery.
 
-[Live in-browser demo](https://thmolena.github.io/P4-Topological-Graph-RL-for-Single-Cell-Transitions/)
+[Live in-browser demo](https://thmolena.github.io/Topological-Graph-for-Single-Cell-Transitions/)
 · [Manuscript (PDF)](submission/main.pdf) · Python 3.9–3.13 · MIT License
 
 > **AI for science — one operator-algebraic program.** The same noncommutative spectral-truncation operator that drives the quantum work in this series forecasts single-cell state transitions: a *learned*, pseudotime-directed propagator with an inductive Nyström extension, a distribution-free conformal layer for calibrated rare-state coverage, and a persistence-guided active sampler that lifts rare-state recall to **0.39 vs 0.05** for random querying. It is the operator-algebraic learning thread carried into a high-impact scientific domain — evidence the method is a general tool, not a single-problem trick. PyTorch-backed (optional GPU), fully seeded, reproducible from one package.
@@ -144,7 +144,7 @@ pytest tests/                     # property tests for the operator, conformal a
   author       = {Huynh, Molena},
   year         = {2027},
   institution  = {North Carolina State University},
-  howpublished = {\url{https://github.com/thmolena/P4-Topological-Graph-RL-for-Single-Cell-Transitions}},
+  howpublished = {\url{https://github.com/thmolena/Topological-Graph-for-Single-Cell-Transitions}},
   note         = {molena.huynh@jmp.com}
 }
 ```

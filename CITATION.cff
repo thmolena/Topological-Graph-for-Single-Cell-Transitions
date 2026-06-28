@@ -8,7 +8,7 @@ authors:
 version: 0.2.0
 date-released: 2027-01-01
 license: MIT
-repository-code: "https://github.com/thmolena/P4-Topological-Graph-RL-for-Single-Cell-Transitions"
+repository-code: "https://github.com/thmolena/Topological-Graph-for-Single-Cell-Transitions"
 keywords:
   - single-cell genomics
   - cell-state transitions

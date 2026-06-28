@@ -4,7 +4,7 @@ A pseudotime-directed, spectrally truncated graph operator for few-label single-
 state-transition forecasting and rare-state recovery.
 
 [Live in-browser demo](https://thmolena.github.io/P4-Topological-Graph-RL-for-Single-Cell-Transitions/)
-· [Manuscript (`submission/main.tex`)](submission/main.tex) · Python 3.9–3.13 · MIT License
+· [Manuscript (PDF)](submission/main.pdf) · Python 3.9–3.13 · MIT License
 
 ## Abstract
 

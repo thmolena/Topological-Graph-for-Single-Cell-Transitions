@@ -128,10 +128,11 @@ synthetic and seeded, and every grouping split passes a programmatic no-leakage 
 
 \section{The pseudotime-directed, spectrally truncated operator}
 \label{sec:method}
-We build the forecaster from a single non-self-adjoint operator (Fig.~\ref{fig:schematic}). This section
-develops it in the order one would derive it: from points to a directed propagator, then to its
-band-limited spectral truncation, then to the two distinct noncommutativities the construction creates,
-and finally to the inductive extension and conformal layer that make it a usable, falsifiable forecaster.
+The forecaster is a single non-self-adjoint operator (Fig.~\ref{fig:schematic}), and we develop it in the
+order one would derive it: from points to a directed propagator, to its band-limited spectral truncation,
+to the two distinct noncommutativities the construction creates, and finally to the inductive extension and
+conformal layer that turn it into a usable, falsifiable forecaster. Every analytical claim made along the
+way is stated as a theorem and proved in full in Appendix~\ref{sec:theory}.
 
 \subsection{From points to a directed propagator}
 A symmetric $k$NN graph on cell features gives the adjacency $A=A^\top$ that single-cell pipelines already
@@ -173,9 +174,10 @@ approximation, and it maximizes the retained smoothing energy $\operatorname{Tr}
 $r\ll n$.
 
 \subsection{Two distinct noncommutativities}
-It is easy to conflate two structural facts about this operator, and we separate them deliberately. The
-first is directedness: $P$ is non-self-adjoint because the forward kernel makes incoming and outgoing
-transition mass asymmetric at any vertex with a net pseudotime gradient [Theorem~\ref{thm:noncomm}(i)].
+Two structural facts about this operator are easily conflated, and only one of them is the
+spectral-truncation noncommutativity we claim; we therefore separate them deliberately. The first is
+directedness: $P$ is non-self-adjoint because the forward kernel makes incoming and outgoing transition
+mass asymmetric at any vertex with a net pseudotime gradient [Theorem~\ref{thm:noncomm}(i)].
 This is the source of forward transport, but it is a property of any directed operator and is \emph{not}
 special to truncation. The second is genuinely noncommutative and is created by truncation itself: for
 cell-wise functions $\phi,\psi$ the truncated multiplication operators
@@ -190,9 +192,9 @@ reproducing-kernel framework, and the truncation noncommutativity is a finite-ra
 $C^*$-algebraic construction.
 
 \subsection{Making the forecaster inductive}
-A diffusion built over all cells is transductive, and the resulting accuracy gain cannot be separated from
-the held-out connectivity it consumes. We remove the confound by construction. The inductive forecaster
-builds $A$, $U_r$, and $P$ on the training cells only and labels a held-out cell $x_\ast$ by a
+A diffusion built over all cells is transductive: its accuracy gain cannot be disentangled from the
+held-out connectivity it consumes. We therefore remove the confound by construction rather than by a
+separate control experiment. The inductive forecaster builds $A$, $U_r$, and $P$ on the training cells only and labels a held-out cell $x_\ast$ by a
 Gaussian-weighted average of the training field over its nearest \emph{training} cells,
 $\widehat F(x_\ast)=\sum_{i\in\mathcal N(x_\ast)}w_iF^\star_{\mathrm{tr}}(x_i)$---an out-of-sample
 Nystr\"om/Nadaraya--Watson extension \cite{williams2001nystrom,bengio2004oos} that never forms a
@@ -234,8 +236,9 @@ conditions over \num{5} random seeds; the run completed in \SI{32.0}{\second} wi
 the rare state was present, and the directed propagator was non-normal.
 
 \subsection{The operator is genuinely noncommutative, and truncation is well posed}
-We first confirm that the constructed operator has the structural properties the method relies on
-(Fig.~\ref{fig:operator}). The directed propagator is non-normal: its relative non-normality is
+We begin by verifying the two structural properties our analysis requires of the operator---genuine
+non-normality and a well-posed truncation (Fig.~\ref{fig:operator}). The directed propagator is non-normal:
+its relative non-normality is
 $\nu(P)=\num{0.0370}$, and directional reweighting strictly increases it over the undirected random walk
 [$\nu(P_0)=\num{0.0272}$, itself nonzero because degree-asymmetric row normalization already breaks
 normality], so the arrow of pseudotime contributes a measurable \SI{36}{\percent} of additional

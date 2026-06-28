@@ -1,47 +1,17 @@
-"""Installed reproduction command for the graph-aware single-cell artifact.
-
-The ``topocell-reproduce`` console entry point regenerates ``results/summary.json``,
-the LaTeX/Markdown tables, and the figure PDFs from a deterministic, seeded run.
-The configuration defaults to the reported scale (``configs/full.yaml``); pass
-``--config configs/smoke.yaml`` for the laptop-scale smoke run, or ``--skip-run``
-to regenerate tables and figures from an existing ``results/summary.json``.
-
-Execution is delegated to the source-tree scripts so that an editable install and
-a wheel install reproduce the same artifacts. Seeding is fixed in the configs and
-in :mod:`topocell.seed`; ``OMP_NUM_THREADS`` is pinned to keep numeric results
-stable across machines.
-"""
+"""Installed reproduction command for the graph-aware single-cell artifact."""
 
 from __future__ import annotations
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 
-def _has_artifact_tree(path: Path) -> bool:
-    return (path / "scripts" / "run.py").is_file() and (path / "configs").is_dir()
-
-
 def _code_dir() -> Path:
-    """Return the artifact root that holds ``scripts/``, ``configs/`` and ``results/``.
-
-    The pipeline drives the source-tree scripts and configs, which are not part of
-    the importable package. The root is located, in order, from: the package layout
-    (an editable / source-tree install), the current working directory, and its
-    parents. Running ``topocell-reproduce`` from a wheel install therefore requires
-    the working directory to be the ``code/`` artifact tree (or a subdirectory of it).
-    """
-    candidates = [Path(__file__).resolve().parents[2], Path.cwd(), *Path.cwd().parents]
-    for candidate in candidates:
-        if _has_artifact_tree(candidate):
-            return candidate
-    raise FileNotFoundError(
-        "Unable to locate the topocell artifact tree (scripts/run.py and configs/). "
-        "Run topocell-reproduce from the 'code/' directory of the repository."
-    )
+    return Path(__file__).resolve().parents[2]
 
 
 def _run(*args: str) -> None:
@@ -51,24 +21,40 @@ def _run(*args: str) -> None:
     subprocess.run([sys.executable, *args], cwd=_code_dir(), env=env, check=True)
 
 
+def _sync_submission() -> None:
+    code = _code_dir()
+    submission = code.parent
+    (submission / "figures").mkdir(exist_ok=True)
+    (submission / "tables").mkdir(exist_ok=True)
+    for path in (code / "figures").glob("*"):
+        if path.suffix.lower() in {".pdf", ".png"}:
+            shutil.copy2(path, submission / "figures" / path.name)
+    for name in ("main_results.tex",):
+        src = code / "results" / name
+        if src.exists():
+            shutil.copy2(src, submission / "tables" / name)
+
+
+def _ensure_summary() -> None:
+    code = _code_dir()
+    dst = code / "results" / "summary.json"
+    src = code / "summary.json"
+    if not dst.exists() and src.exists():
+        dst.parent.mkdir(exist_ok=True)
+        shutil.copy2(src, dst)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--config",
-        default="configs/full.yaml",
-        help="experiment configuration (default: configs/full.yaml, reported scale)",
-    )
-    parser.add_argument(
-        "--skip-run",
-        action="store_true",
-        help="regenerate tables and figures from an existing results/summary.json",
-    )
+    parser.add_argument("--config", default="configs/full.yaml")
+    parser.add_argument("--skip-run", action="store_true")
     args = parser.parse_args(argv)
-
     if not args.skip_run:
         _run("scripts/run.py", "--config", args.config, "--out", "results")
+    _ensure_summary()
     _run("scripts/make_tables.py")
     _run("scripts/make_figures.py")
+    _sync_submission()
 
 
 if __name__ == "__main__":

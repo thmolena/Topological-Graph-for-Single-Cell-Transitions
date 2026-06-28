@@ -16,3 +16,11 @@ label_fraction: 0.03
 splits: [donor, batch, time, perturbation]
 active_budget: 60
 n_seeds: 5
+# Spectral-truncated directed-diffusion operator + conformal calibration.
+rank: 80
+alpha: 0.9
+beta: 1.0
+eps: 0.6
+tau: 0.2
+conformal_delta: 0.1
+cal_fraction: 0.4

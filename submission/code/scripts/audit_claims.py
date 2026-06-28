@@ -32,14 +32,15 @@ def main() -> int:
         problems += audit.audit_forbidden_claims(text)
 
     # Every headline macro must be present (traceable to this run).
-    for key in ("graph_smoothed_accuracy", "accuracy_gain_vs_baseline",
-                "active_rare_recall_gain", "n_cells"):
+    for key in ("std_inductive_accuracy", "inductive_accuracy_gain",
+                "rare_recall_gain_inductive", "conformal_coverage",
+                "nonnormality_directed", "n_cells"):
         if key not in headline:
             problems.append(f"headline macro {key!r} not generated")
 
     # Integrity flags must be true.
     integrity = summary.get("integrity", {})
-    for flag in ("donor_split_clean", "betti_monotonic"):
+    for flag in ("splits_clean", "propagator_nonnormal", "rare_state_present"):
         if not integrity.get(flag, False):
             problems.append(f"integrity flag {flag!r} is not true")
 

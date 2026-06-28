@@ -156,7 +156,7 @@ def active_sample(
     if strategy == "random":
         return rng.choice(unlabeled, size=budget, replace=False)
 
-    if strategy != "topology":
+    if strategy not in ("topology", "persistence"):
         raise ValueError(f"unknown active-sampling strategy {strategy!r}")
 
     # Uncertainty: entropy of a propagation forecast from the current labels.
@@ -165,11 +165,16 @@ def active_sample(
     )
     uncertainty = _entropy(fc.proba)
 
-    # Topology: inverse local density -> high in sparse/rare regions.
-    cg = build_knn_graph(X, k=k)
-    inv_density = 1.0 / (local_density(cg, X)[unlabeled] + 1e-9)
+    if strategy == "topology":
+        # Inverse local density -> high in sparse/rare regions.
+        cg = build_knn_graph(X, k=k)
+        topo_signal = 1.0 / (local_density(cg, X)[unlabeled] + 1e-9)
+    else:  # 'persistence': per-cell topological isolation (k-th NN distance),
+        # the per-cell witness of a long degree-0 persistence bar.
+        from .persistence import per_cell_isolation
+        topo_signal = per_cell_isolation(X, k=k)[unlabeled]
 
-    score = _zscore(uncertainty) + _zscore(inv_density)
+    score = _zscore(uncertainty) + _zscore(topo_signal)
     order = np.argsort(-score)
     return unlabeled[order[:budget]]
 

@@ -19,10 +19,13 @@ def main() -> None:
     summary = run(cfg, Path(args.out))
     h = summary["headline"]
     print(f"[{cfg.name}] cells={h['n_cells']}  states={h['n_states']}  "
-          f"graph-smoothed acc={h['graph_smoothed_accuracy']:.4f}  "
-          f"(+{h['accuracy_gain_vs_baseline']:.4f} vs baseline)  "
-          f"active rare-recall={h['active_rare_recall']:.4f} "
-          f"(+{h['active_rare_recall_gain']:.4f} vs random)  "
+          f"inductive STDD acc={h['std_inductive_accuracy']:.4f} "
+          f"(+{h['inductive_accuracy_gain']:.4f} vs kNN)  "
+          f"rare-recall={h['std_inductive_rare_recall']:.4f} "
+          f"(vs {h['baseline_rare_recall']:.4f} kNN)  "
+          f"conformal cov={h['conformal_coverage']:.3f}/{h['conformal_target']:.2f}  "
+          f"ECE {h['ece_raw']:.3f}->{h['ece_calibrated']:.3f}  "
+          f"nonnorm={h['nonnormality_directed']:.3f}  "
           f"runtime={summary['provenance']['runtime_sec']}s")
 
 

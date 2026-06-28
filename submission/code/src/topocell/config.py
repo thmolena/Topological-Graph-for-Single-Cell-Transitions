@@ -36,6 +36,15 @@ class Config:
     splits: List[str] = field(default_factory=lambda: ["donor", "batch", "time", "perturbation"])
     active_budget: int = 20
     n_seeds: int = 1
+    # Spectral-truncated directed-diffusion operator (operators.py).
+    rank: int = 80            # spectral-truncation level (band-limit)
+    alpha: float = 0.9        # diffusion / clamping trade-off
+    beta: float = 1.0         # pseudotime-direction strength (0 = undirected)
+    eps: float = 0.6          # directed-walk laziness in (0, 1]
+    tau: float = 0.2          # pseudotime scale of the directional kernel
+    # Split-conformal calibration (conformal.py).
+    conformal_delta: float = 0.1   # target miscoverage (coverage >= 1 - delta)
+    cal_fraction: float = 0.4      # fraction of annotated cells held for calibration
 
     @classmethod
     def load(cls, path: str | Path) -> "Config":

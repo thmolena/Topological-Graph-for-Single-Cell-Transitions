@@ -4,9 +4,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "topocell"
-version = "0.1.0"
-description = "Topological Graph RL for Single-Cell State Transition and Perturbation Forecasting"
-readme = { text = "Topological Graph RL for Single-Cell State Transition and Perturbation Forecasting", content-type = "text/plain" }
+version = "0.2.0"
+description = "Spectral-truncated, pseudotime-directed (noncommutative) graph operators for single-cell state-transition forecasting and rare-state recovery"
+readme = { text = "Spectral-truncated noncommutative graph operators for few-label single-cell transition forecasting and rare-state recovery", content-type = "text/plain" }
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "Molena Huynh" }]

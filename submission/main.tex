@@ -32,25 +32,24 @@
 \begin{abstract}
 Despite the centrality of the cell $k$-nearest-neighbor ($k$NN) graph to single-cell analysis, the
 operator used to propagate information across it---the self-adjoint normalized adjacency
-$S=D^{-1/2}AD^{-1/2}$---is poorly matched to forecasting cell-state transitions. It is reversible, so it
-cannot encode the arrow of differentiation that pseudotime makes explicit; and when the graph is built
-over all cells it consults the held-out connectivity at inference, so a measured gain over a point
-classifier conflates the value of diffusion with a transductive information advantage. We resolve both
-limitations with a single object: a spectral-truncated, pseudotime-directed graph operator. Each edge is
-reweighted by a bounded forward kernel of the pseudotime increment and row-normalized, yielding a
-non-self-adjoint propagator that transports labels along the trajectory; the diffusion is then restricted
-to the leading $r$ graph-Fourier modes---a band-limiting spectral truncation that denoises the operator
-and admits a closed-form solve---and an out-of-sample Nystr\"om extension makes the forecaster inductive,
-so held-out connectivity is never used. On a seeded synthetic branching lineage ($n=\num{3000}$ cells,
-$5$ seeds) the inductive operator improves held-out accuracy over a matched inductive $k$NN classifier on
+$S=D^{-1/2}AD^{-1/2}$---is poorly matched to forecasting cell-state transitions. Its utility is limited by
+two structural defects: it is reversible, so it cannot encode the arrow of differentiation that pseudotime
+makes explicit, and, built over all cells, it consults held-out connectivity at inference, conflating the
+value of diffusion with a transductive information advantage. We tackle both challenges by introducing a
+spectral-truncated, pseudotime-directed graph operator that benefits from three innovations: a
+non-self-adjoint forward propagator that transports labels along the trajectory, a band-limiting spectral
+truncation that denoises the operator into a closed-form solve, and an out-of-sample Nystr\"om extension
+that renders the forecaster inductive. On a seeded synthetic branching lineage ($n=\num{3000}$ cells,
+$5$ seeds), the inductive operator improves held-out accuracy over a matched inductive $k$NN classifier on
 all four leakage-checked transfer protocols ($\num{0.6856}$ versus $\num{0.5992}$) and recovers a
 deliberately rare state that the baseline almost never finds (recall $\num{0.3322}$ versus
-$\num{0.0151}$), with the largest margin on forward-in-time extrapolation---precisely where smoothing is
+$\num{0.0151}$), with its largest margin on forward-in-time extrapolation---precisely where smoothing is
 weakest. Because the comparison is inductive on both sides, this gain is the matched control whose absence
-inflates symmetric-smoothing studies, not the transductive confound. A split-conformal layer supplies
-distribution-free coverage ($\num{0.8968}$ against a target of $\num{0.90}$) and temperature scaling cuts
-the expected calibration error by \SI{73}{\percent}. All data are synthetic; external validation on real
-single-cell RNA-sequencing data is the decisive next step.
+inflates symmetric-smoothing studies, not the transductive confound; a split-conformal layer further
+supplies distribution-free coverage ($\num{0.8968}$ against a $\num{0.90}$ target) and temperature scaling
+reduces the expected calibration error by \SI{73}{\percent}. By transporting labels with a directed,
+truncated, and inductive operator, we offer tangible progress for single-cell transition forecasting; all
+data are synthetic, and external validation on real RNA-sequencing data is the decisive next step.
 \end{abstract}
 
 \maketitle
@@ -80,24 +79,27 @@ is transductive: it consults the held-out cells' connectivity at inference, so a
 over an inductive point classifier conflates the value of diffusion with a transductive information
 advantage---the confound that comparable studies flag as their decisive missing control.
 
-We take both limitations as design targets and arrive at a new operator. Rather than re-applying label
-propagation, we build the forecaster from a spectral-truncated, pseudotime-directed graph operator whose
-construction contributes four innovations. (1) A \emph{directed} propagator $P$ reweights each edge
-$i\!\to\!j$ by a bounded forward kernel $\kappa(t_j-t_i)$ of the pseudotime increment and row-normalizes;
-$P$ is non-self-adjoint---the single-cell instance of the operator noncommutativity that recent
-$C^*$-algebraic kernel machines exploit for expressiveness
-\cite{hashimoto2026spectral,vansuijlekom2021spectral}---and it is the source of forward transport along
-the trajectory. (2) A \emph{spectral truncation} restricts the diffusion to the leading $r$ graph-Fourier
-modes, band-limiting and denoising a lazy directed walk into a closed-form solve; truncation is the graph
-analog of the spectral truncation of multiplication operators in noncommutative geometry, and the
-truncated product is \emph{not} the product of the truncations---the structural origin of a second,
-distinct noncommutativity. (3) An out-of-sample Nystr\"om extension makes the forecaster \emph{inductive},
-so the matched inductive control is the method itself rather than a missing experiment. (4) A
-distribution-free \emph{conformal} layer for the rare state and a \emph{persistent-homology} topology
-signal replace the passive connected-component count of prior work with a genuine multiscale descriptor.
+Here, we take both limitations as design targets and introduce a spectral-truncated, pseudotime-directed
+graph operator, which we develop into a falsifiable single-cell forecaster. Rather than re-applying label
+propagation, we contribute four innovations. (1) We construct a \emph{directed} propagator $P$ by
+reweighting each edge $i\!\to\!j$ with a bounded forward kernel $\kappa(t_j-t_i)$ of the pseudotime
+increment and row-normalizing; $P$ is non-self-adjoint---the single-cell instance of the operator
+noncommutativity that recent $C^*$-algebraic kernel machines exploit for expressiveness
+\cite{hashimoto2026spectral,vansuijlekom2021spectral}---and it transports labels along the trajectory
+rather than merely smoothing them across it. (2) We \emph{band-limit} the diffusion by spectral truncation
+to the leading $r$ graph-Fourier modes, denoising a lazy directed walk into a closed-form solve; truncation
+is the graph analog of the spectral truncation of multiplication operators in noncommutative geometry, and
+because the truncated product is \emph{not} the product of the truncations, it generates a second,
+genuinely noncommutative structure. (3) We render the forecaster \emph{inductive} through an out-of-sample
+Nystr\"om extension, so the matched inductive control is the method itself rather than a missing
+experiment. (4) We calibrate the rare-state forecast with a distribution-free \emph{conformal} layer and
+replace the passive connected-component count of prior work with a genuine multiscale
+\emph{persistent-homology} descriptor.
 
-We evaluate this operator against the symmetric smoother and a point classifier under identical,
-leakage-checked conditions. All experiments run on a seeded synthetic branching lineage: this is a
+We evaluate this operator against the symmetric smoother and a matched point classifier under identical,
+leakage-checked conditions, and find that the directed, truncated, inductive operator improves held-out
+accuracy on every transfer protocol, recovers a rare state the baseline misses, and---uniquely---rescues
+forward-in-time extrapolation. All experiments run on a seeded synthetic branching lineage: this is a
 controlled benchmark, not a biological dataset, and we are explicit about that throughout. Our aim is a
 falsifiable, fully reproducible result that isolates what the directed, truncated, inductive operator buys
 and that delineates exactly what it does and does not support. The analytical guarantees stated below are
@@ -398,8 +400,9 @@ $M_\phi,M_\psi$ are truncated multiplication operators for the first two feature
 
 \section{Discussion and conclusion}
 \label{sec:discussion}
-Within a controlled synthetic benchmark, conditioning single-cell forecasts on a pseudotime-directed,
-spectrally truncated graph operator helps---and helps in a way the symmetric smoother cannot. The
+In this manuscript, we introduced a spectral-truncated, pseudotime-directed graph operator for single-cell
+transition forecasting. Within a controlled synthetic benchmark, conditioning forecasts on this directed,
+band-limited operator helps---and helps in a way the symmetric smoother cannot. The
 directional, non-self-adjoint propagator transports labels along the trajectory, which both recovers a rare
 cell state that a matched point classifier almost entirely misses and, uniquely, rescues forward-in-time
 extrapolation. The spectral truncation band-limits the operator into a denoised, closed-form solve whose
@@ -424,7 +427,9 @@ vector-valued reproducing-kernel learning framework or a deep-learning extension
 contribution lies along an orthogonal axis---a directed (non-self-adjoint) transport operator made
 inductive and conformally calibrated for single-cell transition forecasting---and the kernel $\mathcal K$
 enters as the structural Gram object rather than as a learned reproducing-kernel Hilbert space (RKHS). The
-gains are real but should not be oversold, and the limitations below bound every claim above.
+gains are real but should not be oversold; all in all, a directed, truncated, and inductive graph operator
+offers a principled and falsifiable arena for single-cell transition forecasting, whose decisive test is
+external validation on real data. The limitations below bound every claim above.
 
 \subsection{Limitations}
 \label{sec:limitations}

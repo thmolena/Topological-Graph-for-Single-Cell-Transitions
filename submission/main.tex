@@ -22,7 +22,7 @@
 
 \begin{document}
 
-\title{Directed spectral-truncated graph operators for inductive forecasting of single-cell transitions}
+\title{Directed spectral-truncated operators for inductive classification of quantum phases across a control-parameter sweep}
 
 \author{Molena Huynh}
 \email{molena.huynh@jmp.com}
@@ -30,143 +30,153 @@
 \date{\today}
 
 \begin{abstract}
-Despite the centrality of the cell $k$-nearest-neighbor ($k$NN) graph to single-cell analysis, the
-operator used to propagate information across it---the self-adjoint normalized adjacency
-$S=D^{-1/2}AD^{-1/2}$---is poorly matched to forecasting cell-state transitions. Its utility is limited by
-two structural defects: it is reversible, so it cannot encode the arrow of differentiation that pseudotime
-makes explicit, and, built over all cells, it consults held-out connectivity at inference, conflating the
-value of diffusion with a transductive information advantage. We tackle both challenges by introducing a
-spectral-truncated, pseudotime-directed graph operator that benefits from three innovations: a
-non-self-adjoint forward propagator that transports labels along the trajectory, a band-limiting spectral
-truncation that denoises the operator into a closed-form solve, and an out-of-sample Nystr\"om extension
-that renders the forecaster inductive. On a seeded synthetic branching lineage ($n=\num{3000}$ cells,
-$5$ seeds), the inductive operator improves held-out accuracy over a matched inductive $k$NN classifier on
-all four leakage-checked transfer protocols ($\num{0.6856}$ versus $\num{0.5992}$) and recovers a
-deliberately rare state that the baseline almost never finds (recall $\num{0.3322}$ versus
-$\num{0.0151}$), with its largest margin on forward-in-time extrapolation---precisely where smoothing is
-weakest. Because the comparison is inductive on both sides, this gain is the matched control whose absence
-inflates symmetric-smoothing studies, not the transductive confound; a split-conformal layer further
-supplies distribution-free coverage ($\num{0.8968}$ against a $\num{0.90}$ target) and temperature scaling
-reduces the expected calibration error by \SI{73}{\percent}. By transporting labels with a directed,
-truncated, and inductive operator, we offer tangible progress for single-cell transition forecasting; all
-data are synthetic, and external validation on real RNA-sequencing data is the decisive next step.
+Classifying the phase of a parameterized quantum many-body system as a control parameter is swept across a
+quantum phase transition---from the measurement-derived features of classical shadows---is confounded by
+device-to-device and shot-noise variation and by the rarity of the critical regimes that matter most. The
+graph operator used to propagate phase labels across the similarity graph of quantum states, the
+self-adjoint normalized adjacency $S=D^{-1/2}AD^{-1/2}$, is poorly matched to this task: it is reversible,
+so it cannot encode the directed arrow of the drive, and, built over all states, it consults held-out
+connectivity at inference, conflating the value of diffusion with a transductive information advantage. We
+tackle both challenges by introducing a spectral-truncated, drive-directed graph operator that benefits
+from three innovations: a non-self-adjoint forward propagator that transports labels along the sweep, a
+band-limiting spectral truncation that denoises the operator into a closed-form solve, and an out-of-sample
+Nystr\"om extension that renders the classifier inductive and device-transferable. The truncation realizes,
+on the state graph, the spectral truncation of multiplication operators from $C^*$-algebraic kernel
+machines, generating a genuinely noncommutative truncated operator $*$-algebra with a positive-definite
+Gram kernel. On a seeded synthetic benchmark emulating a parameterized quantum system ($n=\num{3000}$
+states, $5$ seeds), the inductive operator improves held-out phase-classification accuracy over a matched
+inductive $k$NN classifier on all four leakage-checked transfer protocols ($\num{0.6856}$ versus
+$\num{0.5992}$) and recovers a rare critical regime the baseline almost never finds (recall $\num{0.3322}$
+versus $\num{0.0151}$), with its largest margin on forward extrapolation across the sweep---precisely where
+smoothing is weakest. A split-conformal layer supplies distribution-free coverage ($\num{0.8968}$ against a
+$\num{0.90}$ target) and temperature scaling reduces the expected calibration error by \SI{73}{\percent}.
+All data are synthetic; validation on classical shadows from a programmable quantum simulator is the
+decisive next step.
 \end{abstract}
 
 \maketitle
 
 \section{Introduction}
 \label{sec:intro}
-Single-cell measurements resolve continuous trajectories of differentiation, activation, and treatment
-response, and a recurring analysis goal is to \emph{forecast} the state a cell or population will occupy
-under a condition not directly observed: a donor not yet profiled, a batch run later, a later point along
-a developmental trajectory, or an untested perturbation. Two structural features of these data shape any
-forecaster. First, cells concentrate near a low-dimensional manifold that is routinely approximated by a
-$k$-nearest-neighbor ($k$NN) graph before clustering, embedding, or pseudotime inference
-\cite{wolf2018scanpy,mcinnes2018umap,becht2019umap,vandermaaten2008tsne,belkin2003laplacian,luxburg2007spectral}.
-Second, the biologically decisive states---transient progenitors, treatment-resistant clones---are
-frequently rare, and ordinary point classifiers, trained to minimize average error, ignore them.
+Programmable quantum simulators now prepare and measure many-body states across entire phase diagrams, and
+a central task in machine learning for quantum physics is to identify the \emph{phase} a state occupies
+from its measurement record---typically the randomized-measurement data of classical shadows
+\cite{huang2020shadows,elben2023randomized}, which compress an exponentially large state into a tractable
+feature vector. Recognizing phases and locating transitions from such data is by now a workhorse of the
+field \cite{carrasquilla2017ml,vannieuwenburg2017confusion,carleo2019rmp,biamonte2017qml}. Two structural
+features of these data shape any classifier. First, the shadow features of a parameterized system
+concentrate near a low-dimensional manifold---the phase diagram---that is routinely approximated by a
+$k$-nearest-neighbor ($k$NN) similarity graph before clustering, embedding, or kernel learning
+\cite{coifman2006diffusion,belkin2003laplacian,luxburg2007spectral,vandermaaten2008tsne,havlicek2019,schuld2019}.
+Second, the physically decisive regimes---quantum critical points, narrow topological windows---are
+frequently rare, and ordinary classifiers, trained to minimize average error, miss them.
 
 The canonical response to both features is graph-based semi-supervised learning
-\cite{zhu2002labelprop,zhou2004local}: predictions are allowed to diffuse over the data graph so that each
-cell borrows statistical strength from its neighborhood. The diffusion operator used almost universally
-is the symmetric normalized adjacency $S=D^{-1/2}AD^{-1/2}$ and its Laplacian $L=D-A$
-\cite{haghverdi2016diffusion,coifman2006diffusion}. This object carries two limitations that bear directly
-on transition forecasting, and that motivate the present work. (i) It is self-adjoint, hence reversible:
-it cannot encode the direction of the developmental trajectory, even though pseudotime supplies exactly
-that arrow \cite{trapnell2014monocle,haghverdi2016diffusion} and directed transition operators are the
-basis of modern fate mapping \cite{lamanno2018velocity,lange2022cellrank}. (ii) Built over all cells, it
-is transductive: it consults the held-out cells' connectivity at inference, so a measured accuracy gain
-over an inductive point classifier conflates the value of diffusion with a transductive information
+\cite{zhu2002labelprop,zhou2004local}: phase labels are allowed to diffuse over the state graph so that
+each state borrows statistical strength from its neighborhood. The diffusion operator used almost
+universally is the symmetric normalized adjacency $S=D^{-1/2}AD^{-1/2}$ and its Laplacian $L=D-A$
+\cite{coifman2006diffusion}. This object carries two limitations that bear directly on classification
+across a sweep, and that motivate the present work. (i) It is self-adjoint, hence reversible: it cannot
+encode the directed arrow of the drive, even though the control-parameter sweep supplies exactly that
+arrow and directed, non-Hermitian transition operators are the natural language of driven and open quantum
+dynamics \cite{chung2005directed,ashida2020nonhermitian,sachdev2011qpt}. (ii) Built over all states, it is
+transductive: it consults the held-out states' connectivity at inference, so a measured accuracy gain over
+an inductive point classifier conflates the value of diffusion with a transductive information
 advantage---the confound that comparable studies flag as their decisive missing control.
 
-Here, we take both limitations as design targets and introduce a spectral-truncated, pseudotime-directed
-graph operator, which we develop into a falsifiable single-cell forecaster. Rather than re-applying label
+Here, we take both limitations as design targets and introduce a spectral-truncated, drive-directed graph
+operator, which we develop into a falsifiable quantum-phase classifier. Rather than re-applying label
 propagation, we contribute four innovations. (1) We construct a \emph{directed} propagator $P$ by
-reweighting each edge $i\!\to\!j$ with a bounded forward kernel $\kappa(t_j-t_i)$ of the pseudotime
-increment and row-normalizing; $P$ is non-self-adjoint---the single-cell instance of the operator
+reweighting each edge $i\!\to\!j$ with a bounded forward kernel $\kappa(s_j-s_i)$ of the control-parameter
+increment and row-normalizing; $P$ is non-self-adjoint---the single state-graph instance of the operator
 noncommutativity that recent $C^*$-algebraic kernel machines exploit for expressiveness
-\cite{hashimoto2026spectral,vansuijlekom2021spectral}---and it transports labels along the trajectory
-rather than merely smoothing them across it. (2) We \emph{band-limit} the diffusion by spectral truncation
-to the leading $r$ graph-Fourier modes, denoising a lazy directed walk into a closed-form solve; truncation
-is the graph analog of the spectral truncation of multiplication operators in noncommutative geometry, and
-because the truncated product is \emph{not} the product of the truncations, it generates a second,
-genuinely noncommutative structure. (3) We render the forecaster \emph{inductive} through an out-of-sample
-Nystr\"om extension, so the matched inductive control is the method itself rather than a missing
-experiment. (4) We calibrate the rare-state forecast with a distribution-free \emph{conformal} layer and
-replace the passive connected-component count of prior work with a genuine multiscale
-\emph{persistent-homology} descriptor.
+\cite{hashimoto2026spectral,vansuijlekom2021spectral,connes2021truncations}---and it transports labels
+along the sweep rather than merely smoothing them across it. (2) We \emph{band-limit} the diffusion by
+spectral truncation to the leading $r$ graph-Fourier modes, denoising a lazy directed walk into a
+closed-form solve; this is precisely the spectral truncation of multiplication operators of noncommutative
+geometry, and because the truncated product is \emph{not} the product of the truncations, it generates a
+second, genuinely noncommutative structure with a positive-definite Gram kernel---the state-graph instance
+of a $C^*$-algebraic kernel. (3) We render the classifier \emph{inductive} through an out-of-sample
+Nystr\"om extension \cite{williams2001nystrom,bengio2004oos}, so the matched inductive control is the
+method itself rather than a missing experiment, and the trained operator transfers to states from a device
+it never saw. (4) We calibrate the rare-regime prediction with a distribution-free \emph{conformal} layer
+\cite{vovk2005algorithmic,lei2018distribution,guo2017calibration} and replace the passive
+connected-component count of prior work with a genuine multiscale \emph{persistent-homology} descriptor
+\cite{edelsbrunner2010computational,carlsson2009topology}.
 
 We evaluate this operator against the symmetric smoother and a matched point classifier under identical,
 leakage-checked conditions, and find that the directed, truncated, inductive operator improves held-out
-accuracy on every transfer protocol, recovers a rare state the baseline misses, and---uniquely---rescues
-forward-in-time extrapolation. All experiments run on a seeded synthetic branching lineage: this is a
-controlled benchmark, not a biological dataset, and we are explicit about that throughout. Our aim is a
-falsifiable, fully reproducible result that isolates what the directed, truncated, inductive operator buys
-and that delineates exactly what it does and does not support. The analytical guarantees stated below are
-proved in full in Appendix~\ref{sec:theory}; numerical and reproducibility details are collected in
-Appendix~\ref{sec:methods}; and a self-contained, from-scratch derivation of every implemented component
-is given in Appendix~\ref{sec:scratch}.
+accuracy on every transfer protocol, recovers a rare critical regime the baseline misses, and---uniquely---%
+rescues forward extrapolation across the sweep. All experiments run on a seeded synthetic benchmark that
+emulates the shadow-feature geometry of a parameterized quantum system: this is a controlled stand-in, not
+quantum-device data, and we are explicit about that throughout. Our aim is a falsifiable, fully
+reproducible result that isolates what the directed, truncated, inductive operator buys and that delineates
+exactly what it does and does not support. The analytical guarantees stated below are proved in full in
+Appendix~\ref{sec:theory}; numerical and reproducibility details are collected in
+Appendix~\ref{sec:methods}; and a self-contained, from-scratch derivation of every implemented component is
+given in Appendix~\ref{sec:scratch}.
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_schematic.pdf}
-\caption{\textbf{The spectral-truncated, pseudotime-directed operator pipeline.} A seeded synthetic
-branching lineage of single cells---each carrying branch/state, donor, batch, perturbation, and
-pseudotime metadata, with a deliberately rare state ($\sim$\SI{4}{\percent} of cells)---is embedded in a
-low-dimensional feature space (left). A directed cell graph is built by reweighting each $k$NN edge with a
-bounded forward kernel $\kappa(t_j-t_i)$ of the pseudotime increment and row-normalizing, giving a
-non-self-adjoint (noncommutative) propagator $P=D_W^{-1}W$ that transports labels forward along the
-trajectory (center). The diffusion is restricted to the leading $r$ graph-Fourier modes
-[$B=\Pi_r\widetilde P\,\Pi_r$ for the lazy directed walk $\widetilde P$, a spectral truncation], solved in
-closed form, and extended to held-out cells by an out-of-sample Nystr\"om step so that no held-out
-connectivity is seen at inference. A split-conformal layer calibrates the rare-state forecast. Performance
-is read out (right) as held-out accuracy, expected calibration error, rare-state recall, and conformal
-coverage under four leakage-checked transfer protocols (donor, batch, time, perturbation). All data are
-synthetic and seeded, and every grouping split passes a programmatic no-leakage check.}
+\caption{\textbf{The spectral-truncated, drive-directed operator pipeline.} A seeded synthetic benchmark of
+quantum-state samples---each a classical-shadow feature vector carrying phase, device, shot-noise-batch,
+Hamiltonian-perturbation, and control-parameter metadata, with a deliberately rare critical regime
+($\sim$\SI{4}{\percent} of states)---is embedded in a low-dimensional shadow-feature space (left). A
+directed state graph is built by reweighting each $k$NN edge with a bounded forward kernel
+$\kappa(s_j-s_i)$ of the control-parameter increment and row-normalizing, giving a non-self-adjoint
+(noncommutative) propagator $P=D_W^{-1}W$ that transports labels forward along the sweep (center). The
+diffusion is restricted to the leading $r$ graph-Fourier modes [$B=\Pi_r\widetilde P\,\Pi_r$ for the lazy
+directed walk $\widetilde P$, a spectral truncation], solved in closed form, and extended to held-out
+states by an out-of-sample Nystr\"om step so that no held-out connectivity is seen at inference. A
+split-conformal layer calibrates the rare-regime prediction. Performance is read out (right) as held-out
+accuracy, expected calibration error, rare-state recall, and conformal coverage under four leakage-checked
+transfer protocols (device, shot noise, drive schedule, Hamiltonian). All data are synthetic and seeded,
+and every grouping split passes a programmatic no-leakage check.}
 \label{fig:schematic}
 \end{figure*}
 
-\section{The pseudotime-directed, spectrally truncated operator}
+\section{The drive-directed, spectrally truncated operator}
 \label{sec:method}
-The forecaster is a single non-self-adjoint operator (Fig.~\ref{fig:schematic}), and we develop it in the
-order one would derive it: from points to a directed propagator, to its band-limited spectral truncation,
+The classifier is a single non-self-adjoint operator (Fig.~\ref{fig:schematic}), and we develop it in the
+order one would derive it: from states to a directed propagator, to its band-limited spectral truncation,
 to the two distinct noncommutativities the construction creates, and finally to the inductive extension and
-conformal layer that turn it into a usable, falsifiable forecaster. Every analytical claim made along the
+conformal layer that turn it into a usable, falsifiable classifier. Every analytical claim made along the
 way is stated as a theorem and proved in full in Appendix~\ref{sec:theory}.
 
-\subsection{From points to a directed propagator}
-A symmetric $k$NN graph on cell features gives the adjacency $A=A^\top$ that single-cell pipelines already
-build \cite{wolf2018scanpy}; its degree is $d_i=\sum_j A_{ij}$, $D=\operatorname{diag}(d_i)$, and the
-standard smoother is the self-adjoint $S=D^{-1/2}AD^{-1/2}$. The arrow that $S$ discards is supplied by
-pseudotime. We therefore reweight each directed edge $i\!\to\!j$ by a bounded forward kernel of the
-pseudotime increment,
+\subsection{From states to a directed propagator}
+A symmetric $k$NN graph on shadow features gives the adjacency $A=A^\top$ that quantum-data pipelines
+already build to approximate the state manifold \cite{coifman2006diffusion}; its degree is
+$d_i=\sum_j A_{ij}$, $D=\operatorname{diag}(d_i)$, and the standard smoother is the self-adjoint
+$S=D^{-1/2}AD^{-1/2}$. The arrow that $S$ discards is supplied by the control parameter. We therefore
+reweight each directed edge $i\!\to\!j$ by a bounded forward kernel of the control-parameter increment,
 \begin{equation}
-W_{ij}=A_{ij}\,\kappa(t_j-t_i),\qquad \kappa(\delta)=\exp\!\big(\beta\tanh(\delta/\tau)\big),
+W_{ij}=A_{ij}\,\kappa(s_j-s_i),\qquad \kappa(\delta)=\exp\!\big(\beta\tanh(\delta/\tau)\big),
 \label{eq:kernel}
 \end{equation}
 and row-normalize to a transition matrix $P=D_W^{-1}W$ with $(D_W)_{ii}=\sum_j W_{ij}$. The kernel
-up-weights forward edges ($t_j>t_i$) and down-weights backward ones, with $\beta\ge0$ setting the
-directional strength and $\tau>0$ the pseudotime scale; the $\tanh$ keeps the reweighting bounded so that
-no single edge dominates. Because forward and backward edges receive different weights, $P$ is
-non-self-adjoint, $PP^\top\neq P^\top P$, and the scalar $\nu(P)=\|PP^\top-P^\top P\|_F/\|P\|_F^2$
-witnesses this non-normality [Theorem~\ref{thm:noncomm}(i)]. This is the property that lets $P$ transport
-labels along the trajectory rather than merely smooth them across it, and it is shared by every
-directed-graph operator in single-cell biology---directed Laplacians, RNA-velocity transition matrices,
-fate maps \cite{chung2005directed,lamanno2018velocity,lange2022cellrank}.
+up-weights forward edges ($s_j>s_i$) and down-weights backward ones, with $\beta\ge0$ setting the
+directional strength and $\tau>0$ the control-parameter scale; the $\tanh$ keeps the reweighting bounded so
+that no single edge dominates. Because forward and backward edges receive different weights, $P$ is
+non-self-adjoint, $PP^\top\neq P^\top P$, and the scalar $\nu(P)=\|PP^\top-P^\top P\|_F/\|P\|_F^2$ witnesses
+this non-normality [Theorem~\ref{thm:noncomm}(i)]. This is the property that lets $P$ transport labels along
+the sweep rather than merely smooth them across it, and it is shared by the directed, non-Hermitian
+transition operators that describe driven and open quantum dynamics
+\cite{chung2005directed,ashida2020nonhermitian}.
 
 \subsection{Spectral truncation: band-limiting the operator}
-A directed walk on a noisy $k$NN graph still mixes high-frequency noise into the forecast. We suppress it
-by spectral truncation. The graph-Fourier modes are the eigenvectors $u_1,\dots,u_n$ of $S$; the $r$ with
-the largest eigenvalues are the smoothest, lowest-frequency functions on the graph (equivalently the
-lowest modes of the normalized Laplacian $\mathcal L=I-S$). Collecting them in $U_r=[u_1\cdots u_r]$ and
-writing $\Pi_r=U_rU_r^\top$ for the band-limiting projector, we compress a lazy directed walk
-$\widetilde P=(1-\varepsilon)I+\varepsilon P$ to its action on the band-limited subspace,
+A directed walk on a noisy state graph still mixes high-frequency shot noise into the prediction. We
+suppress it by spectral truncation. The graph-Fourier modes are the eigenvectors $u_1,\dots,u_n$ of $S$;
+the $r$ with the largest eigenvalues are the smoothest, lowest-frequency functions on the graph
+(equivalently the lowest modes of the normalized Laplacian $\mathcal L=I-S$). Collecting them in
+$U_r=[u_1\cdots u_r]$ and writing $\Pi_r=U_rU_r^\top$ for the band-limiting projector, we compress a lazy
+directed walk $\widetilde P=(1-\varepsilon)I+\varepsilon P$ to its action on the band-limited subspace,
 \begin{equation}
 B=U_r^\top\widetilde P\,U_r\in\mathbb{R}^{r\times r},
 \label{eq:trunc}
 \end{equation}
-and solve the band-limited diffusion in closed form: seeding one-hot labels $F_0$ on the annotated cells,
-the field is $F^\star=U_r(I-\alpha B)^{-1}(1-\alpha)U_r^\top F_0$ (Theorem~\ref{thm:fixedpoint}).
+and solve the band-limited diffusion in closed form: seeding one-hot phase labels $F_0$ on the annotated
+states, the field is $F^\star=U_r(I-\alpha B)^{-1}(1-\alpha)U_r^\top F_0$ (Theorem~\ref{thm:fixedpoint}).
 Truncation does double duty. It denoises---restricting to the $r$ smoothest modes is, for the
 positive-semidefinite diffusion filter the method applies, the Eckart--Young--Mirsky-optimal rank-$r$
 approximation, and it maximizes the retained smoothing energy $\operatorname{Tr}(\Pi_r S)$
@@ -177,140 +187,147 @@ $r\ll n$.
 Two structural facts about this operator are easily conflated, and only one of them is the
 spectral-truncation noncommutativity we claim; we therefore separate them deliberately. The first is
 directedness: $P$ is non-self-adjoint because the forward kernel makes incoming and outgoing transition
-mass asymmetric at any vertex with a net pseudotime gradient [Theorem~\ref{thm:noncomm}(i)].
-This is the source of forward transport, but it is a property of any directed operator and is \emph{not}
-special to truncation. The second is genuinely noncommutative and is created by truncation itself: for
-cell-wise functions $\phi,\psi$ the truncated multiplication operators
+mass asymmetric at any state with a net control-parameter gradient [Theorem~\ref{thm:noncomm}(i)]. This is
+the source of forward transport, but it is a property of any directed operator and is \emph{not} special to
+truncation. The second is genuinely noncommutative and is created by truncation itself: for state-wise
+functions $\phi,\psi$ the truncated multiplication operators
 $M_\phi^{(r)}=U_r^\top\operatorname{diag}(\phi)U_r$ do not commute, $[M_\phi^{(r)},M_\psi^{(r)}]\neq0$,
-vanishing only in the full-rank limit $\Pi_r=I$ [Theorem~\ref{thm:noncomm}(ii)]. These truncated
-multiplications generate a noncommutative operator $*$-algebra whose symmetric Gram object
-$\mathcal K=\sum_c M_cM_c^\top$ is a positive-definite kernel on the band-limited subspace
-(Theorem~\ref{thm:kernel})---the graph instance of the spectral-truncation noncommutativity that underlies
-$C^*$-algebraic kernel machines \cite{hashimoto2026spectral}. We emphasize that we instantiate this
-structure on the cell graph and supply the Gram kernel; we do not develop a new vector-valued
+vanishing only in the full-rank limit $\Pi_r=I$ [Theorem~\ref{thm:noncomm}(ii)]. This is precisely the
+spectral truncation of multiplication operators in noncommutative geometry
+\cite{vansuijlekom2021spectral,connes2021truncations}: the truncated multiplications generate a
+noncommutative operator $*$-algebra whose symmetric Gram object $\mathcal K=\sum_c M_cM_c^\top$ is a
+positive-definite kernel on the band-limited subspace (Theorem~\ref{thm:kernel})---the state-graph instance
+of a $C^*$-algebraic kernel machine \cite{hashimoto2026spectral}. We emphasize that we instantiate this
+structure on the state graph and supply the Gram kernel; we do not develop a new vector-valued
 reproducing-kernel framework, and the truncation noncommutativity is a finite-rank object, not a full
 $C^*$-algebraic construction.
 
-\subsection{Making the forecaster inductive}
-A diffusion built over all cells is transductive: its accuracy gain cannot be disentangled from the
+\subsection{Making the classifier inductive and device-transferable}
+A diffusion built over all states is transductive: its accuracy gain cannot be disentangled from the
 held-out connectivity it consumes. We therefore remove the confound by construction rather than by a
-separate control experiment. The inductive forecaster builds $A$, $U_r$, and $P$ on the training cells only and labels a held-out cell $x_\ast$ by a
-Gaussian-weighted average of the training field over its nearest \emph{training} cells,
-$\widehat F(x_\ast)=\sum_{i\in\mathcal N(x_\ast)}w_iF^\star_{\mathrm{tr}}(x_i)$---an out-of-sample
-Nystr\"om/Nadaraya--Watson extension \cite{williams2001nystrom,bengio2004oos} that never forms a
-test--test edge and never reads held-out adjacency (Theorem~\ref{thm:inductive}). The matched inductive
-control is therefore the method itself, not an experiment we leave undone, and it is this inductive variant
-that we put forward throughout.
+separate control experiment. The inductive classifier builds $A$, $U_r$, and $P$ on the training states
+only and labels a held-out state $x_\ast$ by a Gaussian-weighted average of the training field over its
+nearest \emph{training} states, $\widehat F(x_\ast)=\sum_{i\in\mathcal N(x_\ast)}w_iF^\star_{\mathrm{tr}}(x_i)$%
+---an out-of-sample Nystr\"om/Nadaraya--Watson extension \cite{williams2001nystrom,bengio2004oos} that never
+forms a test--test edge and never reads held-out adjacency (Theorem~\ref{thm:inductive}). The matched
+inductive control is therefore the method itself, not an experiment we leave undone, and because inference
+on a new state consults only the trained field, the operator transfers to shadow data from a device or
+calibration it never saw. It is this inductive variant that we put forward throughout.
 
 \subsection{Conformal calibration and a multiscale topology signal}
-Two layers complete the forecaster. A split-conformal layer holds out a calibration slice of the annotated
-cells, computes nonconformity scores $1-p_y$, and thresholds at the conformal quantile to form prediction
+Two layers complete the classifier. A split-conformal layer holds out a calibration slice of the annotated
+states, computes nonconformity scores $1-p_y$, and thresholds at the conformal quantile to form prediction
 sets with finite-sample coverage $\ge1-\delta$ under exchangeability (Theorem~\ref{thm:conformal});
 temperature scaling additionally recalibrates the scalar confidence \cite{guo2017calibration}. Separately,
 we replace the constant connected-component count of prior work with the degree-$0$ persistence barcode of
-the cell cloud, computed exactly by union--find on the $k$NN distance graph
+the state cloud, computed exactly by union--find on the $k$NN distance graph
 \cite{edelsbrunner2010computational,carlsson2009topology}; the resulting $\beta_0(\epsilon)$ curve is a
-genuine multiscale descriptor, and its per-cell witness drives an active sampler that targets rare cells.
+genuine multiscale descriptor of the phase diagram, and its per-state witness drives an active sampler that
+targets the rare critical regime.
 
 \section{Results}
 \label{sec:results}
-We evaluate the operator on a fully seeded synthetic branching lineage, comparing the inductive
-spectral-truncated directed-diffusion (STDD) forecaster---the method---against its transductive variant,
-symmetric label propagation, and a matched inductive $k$NN baseline, under four leakage-checked transfer
-protocols. Every reported number is generated verbatim from the run artifact
-\texttt{results/summary.json} (Appendix~\ref{sec:methods}); none is typed by hand.
+We evaluate the operator on a fully seeded synthetic benchmark that emulates the shadow-feature geometry of
+a parameterized quantum system, comparing the inductive spectral-truncated directed-diffusion (STDD)
+classifier---the method---against its transductive variant, symmetric label propagation, and a matched
+inductive $k$NN baseline, under four leakage-checked transfer protocols. Every reported number is generated
+verbatim from the run artifact \texttt{results/summary.json} (Appendix~\ref{sec:methods}); none is typed by
+hand.
 
-\subsection{A controlled lineage with replicate, condition, and pseudotime structure}
-Our benchmark reproduces the replicate, condition, and pseudotime structure a real forecaster must handle
-while remaining bit-for-bit reproducible (Figs.~\ref{fig:schematic} and \ref{fig:lineage}). Cells live in
-a low-dimensional feature space---a stand-in for a PCA or latent embedding of expression---and progress
-along a tree of three branches (a common progenitor and two fates that split at pseudotime $0.45$) as
-Gaussian blobs whose mean drifts along each branch; early cells overlap and are hard to separate, while
-late cells are well resolved. Each cell carries the metadata a forecaster would use---branch/state,
-pseudotime, donor, batch, and perturbation condition---assigned independently of the biological branch so
-that the held-out splits are nontrivial. One state is carved from the late tip of the second fate to be
-deliberately rare, comprising \SI{4}{\percent} of cells. The full-scale configuration generates
-\num{3000} cells with \num{16} features, \num{8} donors, \num{4} batches, and \num{5} perturbation
-conditions over \num{5} random seeds; the run completed in \SI{32.0}{\second} with a peak memory of
-\SI{621.2}{\mega\byte}. Across seeds the integrity gates passed: the grouping splits were leakage-free,
-the rare state was present, and the directed propagator was non-normal.
+\subsection{A controlled phase sweep with device, noise, and control-parameter structure}
+Our benchmark reproduces the device, calibration, and control-parameter structure a real phase classifier
+must handle while remaining bit-for-bit reproducible (Figs.~\ref{fig:schematic} and \ref{fig:lineage}).
+States live in a low-dimensional shadow-feature space---a stand-in for the classical-shadow or
+randomized-measurement features of a parameterized many-body system---and trace a phase diagram of three
+phases (a disordered parent phase and two ordered phases that bifurcate at the critical control parameter
+$s_0=0.45$) as Gaussian clusters whose centroid drifts with $s$; states near the transition overlap and are
+hard to separate, while deep-phase states are well resolved. Each state carries the metadata a classifier
+would use---phase, control parameter, device, shot-noise batch, and Hamiltonian-perturbation condition---%
+assigned independently of the underlying phase so that the held-out splits are nontrivial. One regime is
+carved from the late tip of the second ordered phase to be a deliberately rare critical window, comprising
+\SI{4}{\percent} of states. The full-scale configuration generates \num{3000} states with \num{16} shadow
+features, \num{8} devices, \num{4} shot-noise batches, and \num{5} Hamiltonian-perturbation conditions over
+\num{5} random seeds; the run completed in \SI{32.0}{\second} with a peak memory of \SI{621.2}{\mega\byte}.
+Across seeds the integrity gates passed: the grouping splits were leakage-free, the rare regime was
+present, and the directed propagator was non-normal.
 
 \subsection{The operator is genuinely noncommutative, and truncation is well posed}
 We begin by verifying the two structural properties our analysis requires of the operator---genuine
 non-normality and a well-posed truncation (Fig.~\ref{fig:operator}). The directed propagator is non-normal:
-its relative non-normality is
-$\nu(P)=\num{0.0370}$, and directional reweighting strictly increases it over the undirected random walk
-[$\nu(P_0)=\num{0.0272}$, itself nonzero because degree-asymmetric row normalization already breaks
-normality], so the arrow of pseudotime contributes a measurable \SI{36}{\percent} of additional
-non-normality [Fig.~\ref{fig:operator}(a)]. This directedness is distinct from the truncation
-noncommutativity, which is a separate and genuinely noncommutative object: the truncated multiplication
-operators satisfy $\|[M_\phi^{(r)},M_\psi^{(r)}]\|_F=\num{5.93}$ [Theorem~\ref{thm:noncomm}(ii)], and the
-Gram kernel $\mathcal K=\sum_c M_cM_c^\top$ they generate has smallest eigenvalue
-$\lambda_{\min}=\num{1.62}>0$ (Theorem~\ref{thm:kernel}), so it is strictly positive definite. The
-graph-Fourier spectrum of $S$ decays smoothly from $1$ to $\approx\num{0.41}$ over the first \num{80}
-modes [Fig.~\ref{fig:operator}(b)], so a rank-$r$ truncation retains the low-frequency, label-relevant
-structure while discarding high-frequency noise; sweeping the rank reveals an interior operating
-point---accuracy is flat near $\approx\num{0.71}$ while rare-state recall peaks around $r\in[64,80]$
-[Fig.~\ref{fig:operator}(c)], the bias--variance trade-off that Theorem~\ref{thm:trunc} formalizes. We fix
-$r=\num{80}$ throughout, at which the diffusion is well posed (spectral radius
+its relative non-normality is $\nu(P)=\num{0.0370}$, and directional reweighting strictly increases it over
+the undirected random walk [$\nu(P_0)=\num{0.0272}$, itself nonzero because degree-asymmetric row
+normalization already breaks normality], so the arrow of the drive contributes a measurable
+\SI{36}{\percent} of additional non-normality [Fig.~\ref{fig:operator}(a)]. This directedness is distinct
+from the truncation noncommutativity, which is a separate and genuinely noncommutative object: the
+truncated multiplication operators satisfy $\|[M_\phi^{(r)},M_\psi^{(r)}]\|_F=\num{5.93}$
+[Theorem~\ref{thm:noncomm}(ii)], and the Gram kernel $\mathcal K=\sum_c M_cM_c^\top$ they generate has
+smallest eigenvalue $\lambda_{\min}=\num{1.62}>0$ (Theorem~\ref{thm:kernel}), so it is strictly positive
+definite. The graph-Fourier spectrum of $S$ decays smoothly from $1$ to $\approx\num{0.41}$ over the first
+\num{80} modes [Fig.~\ref{fig:operator}(b)], so a rank-$r$ truncation retains the low-frequency,
+phase-relevant structure while discarding high-frequency shot noise; sweeping the rank reveals an interior
+operating point---accuracy is flat near $\approx\num{0.71}$ while rare-state recall peaks around
+$r\in[64,80]$ [Fig.~\ref{fig:operator}(c)], the bias--variance trade-off that Theorem~\ref{thm:trunc}
+formalizes. We fix $r=\num{80}$ throughout, at which the diffusion is well posed (spectral radius
 $\rho(\alpha B)=\num{0.9209}<1$, Theorem~\ref{thm:fixedpoint}).
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_operator.pdf}
 \caption{\textbf{The operator: noncommutativity, spectrum, and spectral truncation.}
-(a) Relative non-normality $\|PP^\top-P^\top P\|_F/\|P\|_F^2$ of the pseudotime-directed propagator $P$
-against the undirected control ($\beta=0$): the directed operator is non-normal, and the direction
-strictly increases non-normality by \SI{36}{\percent} (mean over $n=\num{5}$ seeds, error bars
-\SI{95}{\percent} CI). (b) Graph-Fourier spectrum of the symmetric normalized adjacency $S$ (eigenvalues in
-descending order), with the truncation rank $r=\num{80}$ marked; the smooth decay justifies band-limiting.
-(c) Inductive accuracy and rare-state recall as a function of the truncation rank on the donor split (seed
-$0$): accuracy is robust to $r$ while rare-state recall peaks at an interior rank---the
-spectral-truncation bias--variance trade-off that fixes the operating point.}
+(a) Relative non-normality $\|PP^\top-P^\top P\|_F/\|P\|_F^2$ of the drive-directed propagator $P$ against
+the undirected control ($\beta=0$): the directed operator is non-normal, and the direction strictly
+increases non-normality by \SI{36}{\percent} (mean over $n=\num{5}$ seeds, error bars \SI{95}{\percent}
+CI). (b) Graph-Fourier spectrum of the symmetric normalized adjacency $S$ (eigenvalues in descending
+order), with the truncation rank $r=\num{80}$ marked; the smooth decay justifies band-limiting.
+(c) Inductive accuracy and rare-state recall as a function of the truncation rank on the device split (seed
+$0$): accuracy is robust to $r$ while rare-state recall peaks at an interior rank---the spectral-truncation
+bias--variance trade-off that fixes the operating point.}
 \label{fig:operator}
 \end{figure*}
 
 \subsection{The inductive operator beats a matched point classifier on every protocol}
-Under all four leakage-checked protocols, the inductive STDD forecaster predicts held-out cell states more
-accurately than the inductive $k$NN baseline that receives the same annotated cells and the same
-neighborhood radius [Table~\ref{tab:main}, Fig.~\ref{fig:forecast}(a)]. Accuracy rises on the donor split
-from \num{0.6550} to \num{0.7227} ($+\num{0.0677}$), on the batch split from \num{0.6355} to \num{0.7134}
-($+\num{0.0779}$), on the perturbation split from \num{0.6490} to \num{0.6741} ($+\num{0.0251}$), and on
-the time split---forward-in-time extrapolation, the hardest protocol---from \num{0.4574} to \num{0.6323}
-($+\num{0.1749}$). Averaged over the four splits the inductive operator reaches \num{0.6856} against
-\num{0.5992} for the baseline, a mean gain of \num{0.0864}, and it improves on \emph{every} split rather
-than on average only. The comparison is inductive on both sides: the STDD field is built on the training
-cells and extended to held-out cells by the Nystr\"om step (Theorem~\ref{thm:inductive}), so the gain is
-not the transductive-versus-inductive asymmetry that inflates symmetric-smoothing studies. Strikingly, the
-same inductive operator even exceeds the transductive symmetric label-propagation baseline on three of
-four splits and in the mean (\num{0.6856} versus \num{0.6587}), despite operating in the strictly harder
-inductive regime.
+Under all four leakage-checked protocols, the inductive STDD classifier predicts held-out phases more
+accurately than the inductive $k$NN baseline that receives the same annotated states and the same
+neighborhood radius [Table~\ref{tab:main}, Fig.~\ref{fig:forecast}(a)]. Accuracy rises on the device split
+from \num{0.6550} to \num{0.7227} ($+\num{0.0677}$), on the shot-noise split from \num{0.6355} to
+\num{0.7134} ($+\num{0.0779}$), on the Hamiltonian split from \num{0.6490} to \num{0.6741}
+($+\num{0.0251}$), and on the schedule split---forward extrapolation across the sweep, the hardest
+protocol---from \num{0.4574} to \num{0.6323} ($+\num{0.1749}$). Averaged over the four splits the inductive
+operator reaches \num{0.6856} against \num{0.5992} for the baseline, a mean gain of \num{0.0864}, and it
+improves on \emph{every} split rather than on average only. The comparison is inductive on both sides: the
+STDD field is built on the training states and extended to held-out states by the Nystr\"om step
+(Theorem~\ref{thm:inductive}), so the gain is not the transductive-versus-inductive asymmetry that inflates
+symmetric-smoothing studies. Strikingly, the same inductive operator even exceeds the transductive
+symmetric label-propagation baseline on three of four splits and in the mean (\num{0.6856} versus
+\num{0.6587}), despite operating in the strictly harder inductive regime---and despite that baseline seeing
+the held-out connectivity it does not.
 
-\subsection{Directional transport recovers a rare state and rescues forward extrapolation}
-The operator's sharpest effect is on the rare state and on the trajectory's forward direction
+\subsection{Directional transport recovers the critical regime and rescues forward extrapolation}
+The operator's sharpest effect is on the rare critical regime and on the forward direction of the sweep
 [Fig.~\ref{fig:forecast}(b)]. The point classifier essentially never recovers the rare population (mean
 rare-state recall \num{0.0151}); the inductive operator raises it to \num{0.3322}, a \num{0.3171} absolute
-gain, recovering the rare state on the donor (\num{0.3968}), batch (\num{0.5706}), and perturbation
-(\num{0.3616}) splits. The directional mechanism is most visible on the time split, where train and test
-are separated along pseudotime: there the directed operator transports early labels forward to raise
-accuracy by \num{0.1749} over the point classifier and by \num{0.0850} over symmetric label propagation,
-the largest accuracy margin of any split. Rare-state recall on the time split remains \num{0.0000} for
-every method: the rare late-tip cells lie entirely beyond the labeled training distribution, so no
-diffusion can manufacture a class that was never reachable from the annotated set
-(Corollary~\ref{cor:nonident})---we report this null as is. The directional contribution to rare recovery
-is isolated by the transductive operator, which holds the transductive/inductive setting fixed against
-symmetric propagation and nearly doubles its rare-state recall (\num{0.4418} versus \num{0.2383} mean;
-donor \num{0.5925} versus \num{0.1520}).
+gain, recovering the critical regime on the device (\num{0.3968}), shot-noise (\num{0.5706}), and
+Hamiltonian (\num{0.3616}) splits. The directional mechanism is most visible on the schedule split, where
+train and test are separated along the control parameter: there the directed operator transports
+low-$s$ labels forward across the transition to raise accuracy by \num{0.1749} over the point classifier
+and by \num{0.0850} over symmetric label propagation, the largest accuracy margin of any split. Rare-state
+recall on the schedule split remains \num{0.0000} for every method: the rare critical states lie entirely
+beyond the labeled training range of the control parameter, so no diffusion can manufacture a class that
+was never reachable from the annotated set (Corollary~\ref{cor:nonident})---we report this null as is. The
+directional contribution to critical-regime recovery is isolated by the transductive operator, which holds
+the transductive/inductive setting fixed against symmetric propagation and nearly doubles its rare-state
+recall (\num{0.4418} versus \num{0.2383} mean; device \num{0.5925} versus \num{0.1520}).
 
 \begin{table*}[t]
 \centering
-\caption{\textbf{Held-out forecasting on the synthetic branching lineage.} Full-scale configuration:
-$n=\num{3000}$ cells, $n_\text{seeds}=\num{5}$. For each leakage-checked split we report forecast accuracy,
-expected calibration error (ECE), and rare-state recall (seed means) for the inductive
-spectral-truncated directed-diffusion operator (inductive STDD, the method), its transductive variant,
-symmetric label propagation, and the inductive $k$NN baseline. Higher accuracy and recall are better;
-lower ECE is better. The table is generated verbatim by \texttt{scripts/make\_tables.py} from
-\texttt{results/summary.json}; no value is typed by hand.}
+\caption{\textbf{Held-out phase classification on the synthetic quantum benchmark.} Full-scale
+configuration: $n=\num{3000}$ states, $n_\text{seeds}=\num{5}$. For each leakage-checked split (device,
+shot-noise batch, drive schedule, Hamiltonian perturbation) we report classification accuracy, expected
+calibration error (ECE), and rare-state recall (seed means) for the inductive spectral-truncated
+directed-diffusion operator (inductive STDD, the method), its transductive variant, symmetric label
+propagation, and the inductive $k$NN baseline. Higher accuracy and recall are better; lower ECE is better.
+The table is generated verbatim by \texttt{scripts/make\_tables.py} from \texttt{results/summary.json}; no
+value is typed by hand.}
 \label{tab:main}
 \setlength{\tabcolsep}{8pt}
 \input{code/results/main_results.tex}
@@ -319,74 +336,76 @@ lower ECE is better. The table is generated verbatim by \texttt{scripts/make\_ta
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_lineage.pdf}
-\caption{\textbf{The synthetic branching lineage.} Each point is one of the $n=\num{3000}$ cells of the
-full-scale configuration, plotted in the first two feature dimensions and colored by pseudotime along the
-perceptually uniform, color-blind-safe viridis axis (the arrow the directed operator exploits). The
-deliberately rare state, carved from the late tip of one fate, is highlighted as stars
-($\sim$\SI{4}{\percent} of cells). Inset: the degree-$0$ persistence $\beta_0(\epsilon)$ curve of the cell
-cloud (log scale), a genuine multiscale topological descriptor that replaces the constant
-connected-component count of prior work. The figure regenerates deterministically from the run
-configuration in \texttt{summary.json}.}
+\caption{\textbf{The synthetic phase sweep.} Each point is one of the $n=\num{3000}$ quantum-state samples
+of the full-scale configuration, plotted in the first two shadow-feature dimensions and colored by the
+control parameter $s$ along the perceptually uniform, color-blind-safe viridis axis (the arrow the directed
+operator exploits). The deliberately rare critical regime, carved from the late tip of one ordered phase,
+is highlighted as stars ($\sim$\SI{4}{\percent} of states). Inset: the degree-$0$ persistence
+$\beta_0(\epsilon)$ curve of the state cloud (log scale), a genuine multiscale topological descriptor of
+the phase diagram that replaces the constant connected-component count of prior work. The figure
+regenerates deterministically from the run configuration in \texttt{summary.json}.}
 \label{fig:lineage}
 \end{figure}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_forecast.pdf}
-\caption{\textbf{Forecasting and active-sampling results.}
-(a) Held-out forecast accuracy by split: inductive STDD (blue) against the inductive $k$NN baseline
-(gray). The operator improves accuracy on all four transfer protocols, most strongly on the
-forward-in-time split.
-(b) Rare-state recall by split for inductive STDD, symmetric label propagation, and the $k$NN baseline:
-the operator recovers the rare state on the donor, batch, and perturbation splits, where the baseline
-almost never does; all methods score zero on the time split, which extrapolates beyond the training
-distribution.
-(c) Rare-state recall after a fixed query budget under persistence-guided, density-based, and random
-active sampling: the persistence policy is the strongest.
+\caption{\textbf{Classification and active-sampling results.}
+(a) Held-out classification accuracy by split: inductive STDD (blue) against the inductive $k$NN baseline
+(gray). The operator improves accuracy on all four transfer protocols, most strongly on the forward
+schedule split.
+(b) Rare-state recall by split for inductive STDD, symmetric label propagation, and the $k$NN baseline: the
+operator recovers the critical regime on the device, shot-noise, and Hamiltonian splits, where the baseline
+almost never does; all methods score zero on the schedule split, which extrapolates beyond the labeled
+range of the control parameter.
+(c) Rare-state recall after a fixed query budget under persistence-guided, density-based, and random active
+sampling: the persistence policy is the strongest.
 In every panel bars are means and error bars are \SI{95}{\percent} confidence intervals
 ($1.96\,s/\sqrt{n}$) over $n=\num{5}$ seeds; all panels are drawn from \texttt{results/summary.json}.}
 \label{fig:forecast}
 \end{figure*}
 
 \subsection{Conformal calibration gives distribution-free coverage and removes the ECE cost}
-The row-normalized band-limited field yields under-dispersed (over-smoothed) class probabilities whose
-confidence understates the model's accuracy: the raw inductive forecaster has an expected calibration
-error of \num{0.1374}, and the temperature that minimizes calibration negative log-likelihood is
+The row-normalized band-limited field yields under-dispersed (over-smoothed) phase probabilities whose
+confidence understates the model's accuracy: the raw inductive classifier has an expected calibration error
+of \num{0.1374}, and the temperature that minimizes calibration negative log-likelihood is
 $T=\num{0.55}<1$---the probabilities must be \emph{sharpened}, not softened. A split-conformal layer and
-this temperature scaling, fit on a held-out calibration slice of the annotated cells, repair the
-miscalibration with a distribution-free guarantee (Fig.~\ref{fig:calibration},
-Theorem~\ref{thm:conformal}). On an exchangeable hold-out the conformal prediction sets attain a realized
-marginal coverage of \num{0.8968} against the target $1-\delta=\num{0.90}$, with rare-state coverage
-\num{0.9307} and an average set size of \num{1.81} classes out of four---so the guarantee is met without
-collapsing to uninformative sets. Temperature scaling cuts the expected calibration error from \num{0.1374}
-to \num{0.0369}, a \SI{73}{\percent} reduction, turning the calibration penalty of graph smoothing into a
-calibration guarantee. We stress that the coverage guarantee holds under exchangeability of calibration and
-test cells; under the grouping-transfer splits, where the held-out group induces a distribution shift,
-coverage is only approximate, and we report the exchangeable-hold-out figure as the regime in which the
-theorem applies.
+this temperature scaling, fit on a held-out calibration slice of the annotated states, repair the
+miscalibration with a distribution-free guarantee (Fig.~\ref{fig:calibration}, Theorem~\ref{thm:conformal}).
+On an exchangeable hold-out the conformal prediction sets attain a realized marginal coverage of
+\num{0.8968} against the target $1-\delta=\num{0.90}$, with rare-regime coverage \num{0.9307} and an
+average set size of \num{1.81} phases out of four---so the guarantee is met without collapsing to
+uninformative sets. Temperature scaling cuts the expected calibration error from \num{0.1374} to
+\num{0.0369}, a \SI{73}{\percent} reduction, turning the calibration penalty of graph smoothing into a
+calibration guarantee---a prerequisite for trusting a phase label estimated from finitely many shots. We
+stress that the coverage guarantee holds under exchangeability of calibration and test states; under the
+grouping-transfer splits, where the held-out group induces a distribution shift, coverage is only
+approximate, and we report the exchangeable-hold-out figure as the regime in which the theorem applies.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=\linewidth]{fig_calibration.pdf}
 \caption{\textbf{Conformal coverage and calibration of the inductive operator.}
 (a) Realized split-conformal coverage on an exchangeable hold-out---marginal and restricted to true rare
-cells---against the target level $1-\delta=\num{0.90}$ (dashed); both meet the target. (b) Expected
-calibration error of the inductive forecast before and after temperature scaling, a \SI{73}{\percent}
-reduction. Bars are means and error bars \SI{95}{\percent} CIs over $n=\num{5}$ seeds, from
-\texttt{results/summary.json}.}
+critical states---against the target level $1-\delta=\num{0.90}$ (dashed); both meet the target.
+(b) Expected calibration error of the inductive prediction before and after temperature scaling, a
+\SI{73}{\percent} reduction. Bars are means and error bars \SI{95}{\percent} CIs over $n=\num{5}$ seeds,
+from \texttt{results/summary.json}.}
 \label{fig:calibration}
 \end{figure}
 
-\subsection{Persistence-guided active sampling recovers the rare state}
+\subsection{Persistence-guided active sampling recovers the critical regime}
 Replacing the passive connected-component count of prior work with the degree-$0$ persistence barcode turns
-topology into an informative, scale-aware signal. The $\beta_0(\epsilon)$ curve of the cell cloud falls
-from \num{3000} components at scale $\epsilon=1.0$ to $9$ at $\epsilon=3.5$ (Fig.~\ref{fig:lineage}, inset),
-and the longest bars flag the well-separated pockets where rare cells reside. A persistence-guided
-active-sampling policy---scoring unlabeled cells by forecast uncertainty times per-cell topological
-isolation---raises rare-state recall on the remaining unlabeled cells to \num{0.3941} ($\pm\num{0.1910}$),
-against \num{0.0481} ($\pm\num{0.0445}$) for uniform random querying and \num{0.3556} for the
-inverse-density policy of prior work, spending \SI{40.0}{\percent} of its queries on genuinely rare cells
-against a \SI{4}{\percent} base rate [Table~\ref{tab:extended}, Fig.~\ref{fig:forecast}(c)].
+the topology of the phase diagram into an informative, scale-aware signal. The $\beta_0(\epsilon)$ curve of
+the state cloud falls from \num{3000} components at scale $\epsilon=1.0$ to $9$ at $\epsilon=3.5$
+(Fig.~\ref{fig:lineage}, inset), and the longest bars flag the well-separated pockets where the critical
+states reside. A persistence-guided active-sampling policy---scoring unlabeled states by prediction
+uncertainty times per-state topological isolation---raises rare-state recall on the remaining unlabeled
+states to \num{0.3941} ($\pm\num{0.1910}$), against \num{0.0481} ($\pm\num{0.0445}$) for uniform random
+querying and \num{0.3556} for the inverse-density policy of prior work, spending \SI{40.0}{\percent} of its
+queries on genuinely rare states against a \SI{4}{\percent} base rate [Table~\ref{tab:extended},
+Fig.~\ref{fig:forecast}(c)]. This matters operationally: each query is an expensive state preparation and
+measurement, and the policy concentrates that budget on the critical window.
 
 \begin{table}[t]
 \centering
@@ -394,7 +413,7 @@ against a \SI{4}{\percent} base rate [Table~\ref{tab:extended}, Fig.~\ref{fig:fo
 Generated verbatim by \texttt{scripts/make\_tables.py} from the \texttt{operator}, \texttt{conformal},
 \texttt{active\_sampling}, and \texttt{persistence} blocks of \texttt{results/summary.json}; mean $\pm$
 \SI{95}{\percent} CI over $n=\num{5}$ seeds where reported. $\nu(\cdot)$ is the relative non-normality;
-$M_\phi,M_\psi$ are truncated multiplication operators for the first two feature coordinates.}
+$M_\phi,M_\psi$ are truncated multiplication operators for the first two shadow-feature coordinates.}
 \label{tab:extended}
 \setlength{\tabcolsep}{4pt}
 \footnotesize
@@ -403,67 +422,71 @@ $M_\phi,M_\psi$ are truncated multiplication operators for the first two feature
 
 \section{Discussion and conclusion}
 \label{sec:discussion}
-In this manuscript, we introduced a spectral-truncated, pseudotime-directed graph operator for single-cell
-transition forecasting. Within a controlled synthetic benchmark, conditioning forecasts on this directed,
-band-limited operator helps---and helps in a way the symmetric smoother cannot. The
-directional, non-self-adjoint propagator transports labels along the trajectory, which both recovers a rare
-cell state that a matched point classifier almost entirely misses and, uniquely, rescues forward-in-time
-extrapolation. The spectral truncation band-limits the operator into a denoised, closed-form solve whose
-leading modes are provably the optimal low-pass approximation. Most critically, the out-of-sample Nystr\"om
-extension makes the comparison inductive: the method beats the point classifier on every transfer protocol
-without ever seeing held-out connectivity, so the accuracy gain is not the transductive information
-advantage that inflates symmetric-smoothing studies---it is the matched inductive control those studies
-identify as their decisive missing experiment. The conformal layer converts the calibration penalty of
-graph smoothing into a distribution-free coverage guarantee, and the degree-$0$ persistence barcode
-replaces a passive connected-component count with an informative, scale-aware topology signal that guides
-active recovery of the rare state.
+In this manuscript, we introduced a spectral-truncated, drive-directed graph operator for classifying
+quantum phases across a control-parameter sweep. Within a controlled synthetic benchmark, conditioning the
+phase prediction on this directed, band-limited operator helps---and helps in a way the symmetric smoother
+cannot. The directional, non-self-adjoint propagator transports labels along the sweep, which both recovers
+a rare critical regime that a matched point classifier almost entirely misses and, uniquely, rescues
+forward extrapolation across the transition. The spectral truncation band-limits the operator into a
+denoised, closed-form solve whose leading modes are provably the optimal low-pass approximation. Most
+critically, the out-of-sample Nystr\"om extension makes the comparison inductive: the method beats the
+point classifier on every transfer protocol without ever seeing held-out connectivity, so the accuracy gain
+is not the transductive information advantage that inflates symmetric-smoothing studies---it is the matched
+inductive control those studies identify as their decisive missing experiment, and it is what lets the
+trained operator transfer to states from an unseen device. The conformal layer converts the calibration
+penalty of graph smoothing into a distribution-free coverage guarantee, and the degree-$0$ persistence
+barcode replaces a passive connected-component count with an informative, scale-aware topology signal that
+guides active recovery of the critical regime.
 
-These results are consistent with the long-standing intuition behind graph-based semi-supervised learning
-\cite{zhou2004local,zhu2002labelprop} and with the central role of directed transition operators in
-single-cell fate mapping \cite{lamanno2018velocity,lange2022cellrank}; the methodological advance is to
-build the forecaster from a spectrally truncated, pseudotime-directed operator, in the spirit of
-spectral-truncation kernel machines \cite{hashimoto2026spectral,vansuijlekom2021spectral}, and to make it
-inductive and conformally calibrated. We are precise about how this relates to that line of work: we
-instantiate spectral truncation and operator noncommutativity on the cell graph and supply a
-positive-definite noncommutative Gram kernel (Theorem~\ref{thm:kernel}), but we do \emph{not} develop a new
-vector-valued reproducing-kernel learning framework or a deep-learning extension as that work does. Our
-contribution lies along an orthogonal axis---a directed (non-self-adjoint) transport operator made
-inductive and conformally calibrated for single-cell transition forecasting---and the kernel $\mathcal K$
-enters as the structural Gram object rather than as a learned reproducing-kernel Hilbert space (RKHS). The
-gains are real but should not be oversold; all in all, a directed, truncated, and inductive graph operator
-offers a principled and falsifiable arena for single-cell transition forecasting, whose decisive test is
-external validation on real data. The limitations below bound every claim above.
+These results connect the long-standing intuition of graph-based semi-supervised learning
+\cite{zhou2004local,zhu2002labelprop} to the machine-learning-for-quantum-physics program of recognizing
+phases from measurement data \cite{carrasquilla2017ml,carleo2019rmp,biamonte2017qml}; the methodological
+advance is to build the classifier from a spectrally truncated, drive-directed operator, in the spirit of
+$C^*$-algebraic spectral-truncation kernel machines
+\cite{hashimoto2026spectral,vansuijlekom2021spectral,connes2021truncations}, and to make it inductive and
+conformally calibrated. We are precise about how this relates to that line of work: we instantiate spectral
+truncation and operator noncommutativity on the state graph and supply a positive-definite noncommutative
+Gram kernel (Theorem~\ref{thm:kernel}), but we do \emph{not} develop a new vector-valued reproducing-kernel
+learning framework or a variational quantum model as that broader program does
+\cite{havlicek2019,schuld2019,patti2022multibasis,cerezo2021vqa}. Our contribution lies along an orthogonal
+axis---a directed (non-self-adjoint) transport operator made inductive and conformally calibrated for
+quantum-phase classification---and the kernel $\mathcal K$ enters as the structural Gram object rather than
+as a learned reproducing-kernel Hilbert space (RKHS) or a parameterized circuit. The gains are real but
+should not be oversold; all in all, a directed, truncated, and inductive graph operator offers a principled
+and falsifiable arena for classifying quantum phases from measurement data, whose decisive test is
+validation on classical shadows from a programmable quantum simulator. The limitations below bound every
+claim above.
 
 \subsection{Limitations}
 \label{sec:limitations}
 We list the limitations plainly because they bound every claim above.
-(1) \emph{Synthetic data.} All numbers come from a generated branching lineage, not biological
-measurements; the magnitudes need not transfer to real scRNA-seq, where noise, dropout, and confounding are
-far more severe.
+(1) \emph{Synthetic data.} All numbers come from a generated benchmark that emulates shadow-feature
+geometry, not measurements from a quantum device; the magnitudes need not transfer to real classical-shadow
+data, where shot noise, finite sampling, and device drift are far more severe.
 (2) \emph{The transductive operator trades some accuracy.} Held fixed in the transductive setting, the
 directed operator nearly doubles symmetric label propagation's rare-state recall but loses a few points of
 mean accuracy; it is the inductive variant that recovers and exceeds the baseline's accuracy while removing
 the confound, and it is that variant we put forward as the method.
 (3) \emph{Calibration is repaired post hoc, under exchangeability.} The conformal guarantee holds for
-exchangeable calibration and test cells; under grouping-transfer distribution shift, realized coverage is
-only approximate.
-(4) \emph{Directionality requires a pseudotime estimate.} The operator consumes a pseudotime coordinate; on
-real data this is itself inferred and noisy, and a mis-estimated arrow would weaken or mislead the
-directional transport.
+exchangeable calibration and test states; under grouping-transfer distribution shift (a genuinely new
+device or Hamiltonian), realized coverage is only approximate.
+(4) \emph{Directionality requires a control-parameter estimate.} The operator consumes a control-parameter
+coordinate; on real data this is the experimentally set drive, which is reliable, but an unparameterized or
+mislabeled sweep would weaken or mislead the directional transport.
 (5) \emph{Standard degree-$0$ topology.} We use the exact $H_0$ persistence barcode---standard persistent
 homology \cite{edelsbrunner2010computational,carlsson2009topology} applied here as a multiscale,
 scale-aware replacement for the connected-component count, not a new topological construction---and not
 higher-order ($H_1$, $H_2$) persistence; the truncation-commutator noncommutativity and the Gram kernel
 $\mathcal K$ are finite-rank, not a full $C^*$-algebraic construction.
 (6) \emph{The directional prior is aligned with the generator.} The forward kernel encodes the same arrow
-of pseudotime that the synthetic lineage is built around, so part of the forward-in-time accuracy gain
-reflects a correctly specified prior; on real data with inferred, noisy pseudotime the advantage may be
-smaller. The fixed-kernel transport is also not learned: a learned directed propagator and an RKHS use of
-$\mathcal K$ are left to future work.
+of the control parameter that the synthetic sweep is built around, so part of the forward-extrapolation
+gain reflects a correctly specified prior; on real data with a noisier or higher-dimensional drive the
+advantage may be smaller. The fixed-kernel transport is also not learned: a learned directed propagator and
+an RKHS or quantum-kernel use of $\mathcal K$ are left to future work.
 (7) \emph{Single benchmark family.} One synthetic generator, however controlled, cannot substitute for the
-diversity of real datasets; external validation remains the decisive test. The natural next step is to
-repeat exactly this comparison on real scRNA-seq and perturbation-screen data, for which the repository
-provides honest, unexercised ingest stubs.
+diversity of real quantum systems; external validation remains the decisive test. The natural next step is
+to repeat exactly this comparison on classical shadows from a programmable quantum simulator and on
+perturbed-Hamiltonian families, for which the repository provides honest, unexercised ingest stubs.
 
 \begin{acknowledgments}
 The author received no specific funding for this work and thanks the maintainers of the open-source
@@ -471,19 +494,19 @@ scientific Python ecosystem (NumPy, SciPy, scikit-learn, NetworkX, and Matplotli
 \end{acknowledgments}
 
 \section*{Data and code availability}
-No biological data were used or generated. All results derive from a seeded synthetic lineage regenerated
-deterministically by the code; the run artifacts (\texttt{summary.json} and the generated tables and
-figures) are contained in the repository accompanying this article. The reference implementation
+No quantum-device data were used or generated. All results derive from a seeded synthetic benchmark
+regenerated deterministically by the code; the run artifacts (\texttt{summary.json} and the generated
+tables and figures) are contained in the repository accompanying this article. The reference implementation
 (\texttt{topocell}, installable with \texttt{pip install .}), configurations, tests, and scripts to
-reproduce every number, table, and figure are provided there. Honest ingest stubs for real AnnData and
-perturbation-screen data are included but intentionally not exercised here; all experiments are
+reproduce every number, table, and figure are provided there. Honest ingest stubs for real classical-shadow
+and perturbed-Hamiltonian data are included but intentionally not exercised here; all experiments are
 reproducible on commodity hardware.
 
 \appendix
 
 \section{Theory of spectral-truncated noncommutative graph operators}
 \label{sec:theory}
-We now make precise, and prove in full, the structural properties the forecaster relies upon: that the
+We now make precise, and prove in full, the structural properties the classifier relies upon: that the
 symmetric backbone is positive semidefinite and that its leading modes are the optimal band-limit
 (Lemma~\ref{lem:dirichlet}, Theorem~\ref{thm:trunc}); that the directed propagator is genuinely non-normal
 and that spectral truncation breaks the commutativity of multiplication (Theorems~\ref{thm:noncomm} and
@@ -494,20 +517,21 @@ solves directly (Theorem~\ref{thm:fixedpoint}); that the Nystr\"om extension is 
 $\|\cdot\|_2,\|\cdot\|_F$ the Euclidean and Frobenius norms, $\operatorname{Tr}$ the trace, and
 $X\succeq0$ ($X\succ0$) positive (semi)definiteness.
 
-\begin{definition}[Cell graph, directed propagator, graph-Fourier basis, truncation]
+\begin{definition}[State graph, directed propagator, graph-Fourier basis, truncation]
 \label{def:graph}
-Let $A=A^\top\in\mathbb{R}^{n\times n}$ be the symmetric adjacency of the $k$NN cell graph ($A_{ij}\ge0$,
+Let $A=A^\top\in\mathbb{R}^{n\times n}$ be the symmetric adjacency of the $k$NN state graph ($A_{ij}\ge0$,
 $A_{ii}=0$), $d_i=\sum_j A_{ij}$ the degree, $D=\operatorname{diag}(d_i)$, and $L=D-A$ the combinatorial
-Laplacian. Write $S=D^{-1/2}AD^{-1/2}$ for the symmetric normalized adjacency. For a pseudotime vector
-$t\in\mathbb{R}^n$, a directional strength $\beta\ge0$, and a scale $\tau>0$, the directed propagator is
-$P=D_W^{-1}W$ where $W_{ij}=A_{ij}\,\kappa(t_j-t_i)$, $\kappa(\delta)=\exp(\beta\tanh(\delta/\tau))$, and
-$(D_W)_{ii}=\sum_j W_{ij}$; $P$ is row-stochastic. Let $U_r=[u_1\cdots u_r]\in\mathbb{R}^{n\times r}$
-collect the eigenvectors of $S$ for its $r$ largest eigenvalues (equivalently the $r$ smoothest,
-lowest-frequency modes of the normalized Laplacian $\mathcal L=I-S$), $\Pi_r=U_rU_r^\top$ the
-band-limiting projector, $\widetilde P=(1-\varepsilon)I+\varepsilon P$ the lazy directed walk for laziness
-$\varepsilon\in(0,1]$, and $B=U_r^\top\widetilde P\,U_r=U_r^\top\!\big((1-\varepsilon)I+\varepsilon
-P\big)U_r$ the truncated lazy directed transport---the $r\times r$ coordinate representation of the
-compression $\Pi_r\widetilde P\,\Pi_r$ on the band-limited subspace.
+Laplacian. Write $S=D^{-1/2}AD^{-1/2}$ for the symmetric normalized adjacency. For a control-parameter
+vector $s\in\mathbb{R}^n$, a directional strength $\beta\ge0$, and a scale $\tau>0$, the directed
+propagator is $P=D_W^{-1}W$ where $W_{ij}=A_{ij}\,\kappa(s_j-s_i)$,
+$\kappa(\delta)=\exp(\beta\tanh(\delta/\tau))$, and $(D_W)_{ii}=\sum_j W_{ij}$; $P$ is row-stochastic. Let
+$U_r=[u_1\cdots u_r]\in\mathbb{R}^{n\times r}$ collect the eigenvectors of $S$ for its $r$ largest
+eigenvalues (equivalently the $r$ smoothest, lowest-frequency modes of the normalized Laplacian
+$\mathcal L=I-S$), $\Pi_r=U_rU_r^\top$ the band-limiting projector,
+$\widetilde P=(1-\varepsilon)I+\varepsilon P$ the lazy directed walk for laziness $\varepsilon\in(0,1]$,
+and $B=U_r^\top\widetilde P\,U_r=U_r^\top\!\big((1-\varepsilon)I+\varepsilon P\big)U_r$ the truncated lazy
+directed transport---the $r\times r$ coordinate representation of the compression $\Pi_r\widetilde P\,\Pi_r$
+on the band-limited subspace.
 \end{definition}
 
 \begin{lemma}[Dirichlet energy and positive semidefiniteness]
@@ -516,11 +540,12 @@ For every $f\in\mathbb{R}^{n}$, $f^\top L f=\tfrac12\sum_{i,j} A_{ij}(f_i-f_j)^2
 $S=I-D^{-1/2}LD^{-1/2}$ has every eigenvalue in $[-1,1]$.
 \end{lemma}
 \begin{proof}
-Both claims reduce to completing the square. Expanding $f^\top Lf=\sum_i d_i f_i^2-\sum_{i,j}A_{ij}f_if_j$ and symmetrizing the diagonal term with
-$A_{ij}=A_{ji}$ gives $f^\top Lf=\tfrac12\sum_{i,j}A_{ij}(f_i-f_j)^2\ge0$ since $A_{ij}\ge0$, so
-$L\succeq0$. The normalized Laplacian $\mathcal L=D^{-1/2}LD^{-1/2}$ is congruent to $L$ through the
-invertible $D^{-1/2}$, hence $\mathcal L\succeq0$ and $S=I-\mathcal L\preceq I$, giving $\lambda(S)\le1$.
-The signless identity $f^\top(D+A)f=\tfrac12\sum_{i,j}A_{ij}(f_i+f_j)^2\ge0$ gives $D+A\succeq0$, so
+Both claims reduce to completing the square. Expanding $f^\top Lf=\sum_i d_i f_i^2-\sum_{i,j}A_{ij}f_if_j$
+and symmetrizing the diagonal term with $A_{ij}=A_{ji}$ gives
+$f^\top Lf=\tfrac12\sum_{i,j}A_{ij}(f_i-f_j)^2\ge0$ since $A_{ij}\ge0$, so $L\succeq0$. The normalized
+Laplacian $\mathcal L=D^{-1/2}LD^{-1/2}$ is congruent to $L$ through the invertible $D^{-1/2}$, hence
+$\mathcal L\succeq0$ and $S=I-\mathcal L\preceq I$, giving $\lambda(S)\le1$. The signless identity
+$f^\top(D+A)f=\tfrac12\sum_{i,j}A_{ij}(f_i+f_j)^2\ge0$ gives $D+A\succeq0$, so
 $I+S=D^{-1/2}(D+A)D^{-1/2}\succeq0$ and $\lambda(S)\ge-1$.
 \end{proof}
 
@@ -535,34 +560,34 @@ approximation of $R$: it minimizes $\|R-\Pi R\Pi\|$ over all rank-$r$ orthogonal
 unitarily invariant norm, with spectral-norm error $g(\lambda_{r+1})$. (For the indefinite $S$ itself,
 low-pass truncation is optimal among band-limited projectors but is not in general the unconstrained best
 rank-$r$ approximation, which would retain the largest-magnitude rather than the largest-value
-eigenvalues; the low-pass choice is the correct one because the forecaster applies the monotone PSD filter
+eigenvalues; the low-pass choice is the correct one because the classifier applies the monotone PSD filter
 $R$, not $S$.)
 \end{theorem}
 \begin{proof}
 We treat the two claims in turn---the energy claim by a Ky Fan trace argument, the filter claim by
-Eckart--Young--Mirsky. Write $S=\sum_j\lambda_j u_ju_j^\top$ with $\lambda_1\ge\cdots\ge\lambda_n$. For a rank-$r$ projector
-$\Pi$, $\operatorname{Tr}(\Pi S)=\sum_j\lambda_j\,u_j^\top\Pi u_j$ with $0\le u_j^\top\Pi u_j\le1$ and
-$\sum_j u_j^\top\Pi u_j=\operatorname{Tr}\Pi=r$; this linear objective over the polytope
-$\{0\le c_j\le1,\sum_j c_j=r\}$ is maximized by putting unit weight on the $r$ largest $\lambda_j$, i.e.,
-$\Pi=\Pi_r$ (Ky Fan). For $R=g(S)=\sum_j g(\lambda_j)u_ju_j^\top$ with $g$ nondecreasing, the eigenvalues
-$g(\lambda_j)\ge0$ are ordered with the $\lambda_j$, so the $r$ largest belong to $u_1,\dots,u_r$;
-Eckart--Young--Mirsky then gives $\Pi_rR\Pi_r=\sum_{j\le r}g(\lambda_j)u_ju_j^\top$ as the best rank-$r$
-approximation of the positive-semidefinite $R$ in every unitarily invariant norm, with
-$\|R-\Pi_rR\Pi_r\|_2=g(\lambda_{r+1})$. The resolvent $g(\lambda)=1/(1-\alpha\lambda)$ and heat kernel
-$g(\lambda)=e^{-t(1-\lambda)}$ are nondecreasing and positive on $[-1,1]$ for $\alpha\in(0,1),\,t>0$
-(Theorem~\ref{thm:fixedpoint} gives $I-\alpha S\succ0$), so the truncated diffusion the method runs is
-optimally band-limited.
+Eckart--Young--Mirsky. Write $S=\sum_j\lambda_j u_ju_j^\top$ with $\lambda_1\ge\cdots\ge\lambda_n$. For a
+rank-$r$ projector $\Pi$, $\operatorname{Tr}(\Pi S)=\sum_j\lambda_j\,u_j^\top\Pi u_j$ with
+$0\le u_j^\top\Pi u_j\le1$ and $\sum_j u_j^\top\Pi u_j=\operatorname{Tr}\Pi=r$; this linear objective over
+the polytope $\{0\le c_j\le1,\sum_j c_j=r\}$ is maximized by putting unit weight on the $r$ largest
+$\lambda_j$, i.e., $\Pi=\Pi_r$ (Ky Fan). For $R=g(S)=\sum_j g(\lambda_j)u_ju_j^\top$ with $g$
+nondecreasing, the eigenvalues $g(\lambda_j)\ge0$ are ordered with the $\lambda_j$, so the $r$ largest
+belong to $u_1,\dots,u_r$; Eckart--Young--Mirsky then gives
+$\Pi_rR\Pi_r=\sum_{j\le r}g(\lambda_j)u_ju_j^\top$ as the best rank-$r$ approximation of the
+positive-semidefinite $R$ in every unitarily invariant norm, with $\|R-\Pi_rR\Pi_r\|_2=g(\lambda_{r+1})$.
+The resolvent $g(\lambda)=1/(1-\alpha\lambda)$ and heat kernel $g(\lambda)=e^{-t(1-\lambda)}$ are
+nondecreasing and positive on $[-1,1]$ for $\alpha\in(0,1),\,t>0$ (Theorem~\ref{thm:fixedpoint} gives
+$I-\alpha S\succ0$), so the truncated diffusion the method runs is optimally band-limited.
 \end{proof}
 
 \begin{theorem}[Noncommutativity of the directed propagator and of spectral truncation]
 \label{thm:noncomm}
 (i) The directed propagator $P$ is non-normal whenever its outgoing and incoming squared transition mass
-differ at some vertex: the commutator diagonal is $[P,P^\top]_{ii}=\sum_j P_{ij}^2-\sum_j P_{ji}^2$, so
+differ at some state: the commutator diagonal is $[P,P^\top]_{ii}=\sum_j P_{ij}^2-\sum_j P_{ji}^2$, so
 $[P,P^\top]\neq0$, and hence $\nu(P)=\|[P,P^\top]\|_F/\|P\|_F^2>0$, as soon as $\sum_j P_{ij}^2\neq\sum_j
-P_{ji}^2$ for some $i$; the forward kernel makes the incoming and outgoing reweighting at a vertex with a
-net pseudotime gradient asymmetric, so this holds and $\nu(P)$ strictly exceeds the undirected control
-$\nu(P_0)$.
-(ii) Spectral truncation breaks the commutativity of pointwise multiplication: for cell-wise functions
+P_{ji}^2$ for some $i$; the forward kernel makes the incoming and outgoing reweighting at a state with a
+net control-parameter gradient asymmetric, so this holds and $\nu(P)$ strictly exceeds the undirected
+control $\nu(P_0)$.
+(ii) Spectral truncation breaks the commutativity of pointwise multiplication: for state-wise functions
 $\phi,\psi$ the truncated multiplication operators $M_\phi^{(r)}=U_r^\top\!\operatorname{diag}(\phi)U_r$
 satisfy
 \begin{widetext}
@@ -577,16 +602,17 @@ in general, with the operator-norm bound $\|[M_\phi^{(r)},M_\psi^{(r)}]\|_2\le 2
 full-rank limit $\Pi_r=I$.
 \end{theorem}
 \begin{proof}
-Both parts are direct computations on the relevant operator products. (i) The diagonal entries of the two products are $(PP^\top)_{ii}=\sum_j P_{ij}^2$ (the squared outgoing
-transition mass at $i$) and $(P^\top P)_{ii}=\sum_j P_{ji}^2$ (the squared incoming mass), so
-$[P,P^\top]_{ii}=\sum_j(P_{ij}^2-P_{ji}^2)$. If $P$ were normal the commutator would vanish, forcing
-$\sum_j P_{ij}^2=\sum_j P_{ji}^2$ at every vertex. Row-stochasticity fixes the row sums $\sum_j P_{ij}=1$
-but constrains neither the column sums nor the squared masses; the directional reweighting
-$W_{ij}=A_{ij}\exp(\beta\tanh((t_j-t_i)/\tau))$ up-weights forward edges and down-weights backward ones,
-so a vertex with a net forward (or backward) pseudotime gradient has unequal incoming and outgoing squared
-mass and a nonzero commutator diagonal. Hence $[P,P^\top]\neq0$ and $\nu(P)>0$; the undirected control
-$\beta=0$ retains only the residual degree-normalization asymmetry of $D_W^{-1}W$, giving the smaller but
-still positive $\nu(P_0)$ reported in Table~\ref{tab:extended}.
+Both parts are direct computations on the relevant operator products. (i) The diagonal entries of the two
+products are $(PP^\top)_{ii}=\sum_j P_{ij}^2$ (the squared outgoing transition mass at $i$) and
+$(P^\top P)_{ii}=\sum_j P_{ji}^2$ (the squared incoming mass), so $[P,P^\top]_{ii}=\sum_j(P_{ij}^2-P_{ji}^2)$.
+If $P$ were normal the commutator would vanish, forcing $\sum_j P_{ij}^2=\sum_j P_{ji}^2$ at every state.
+Row-stochasticity fixes the row sums $\sum_j P_{ij}=1$ but constrains neither the column sums nor the
+squared masses; the directional reweighting $W_{ij}=A_{ij}\exp(\beta\tanh((s_j-s_i)/\tau))$ up-weights
+forward edges and down-weights backward ones, so a state with a net forward (or backward) control-parameter
+gradient has unequal incoming and outgoing squared mass and a nonzero commutator diagonal. Hence
+$[P,P^\top]\neq0$ and $\nu(P)>0$; the undirected control $\beta=0$ retains only the residual
+degree-normalization asymmetry of $D_W^{-1}W$, giving the smaller but still positive $\nu(P_0)$ reported in
+Table~\ref{tab:extended}.
 (ii) Writing $\operatorname{diag}(\phi)\operatorname{diag}(\psi)=\operatorname{diag}(\phi\psi)
 =\operatorname{diag}(\psi)\operatorname{diag}(\phi)$ and inserting $I=\Pi_r+(I-\Pi_r)$ between the two
 diagonal factors,
@@ -605,19 +631,19 @@ $\Pi_r=I$ and the commutator is $U^\top[\operatorname{diag}(\phi),\operatorname{
 
 \begin{theorem}[A positive-definite noncommutative truncated operator kernel]
 \label{thm:kernel}
-For the feature channels $\phi_1,\dots,\phi_d$ (the columns of $X$) with truncated multiplication operators
-$M_c=M_{\phi_c}^{(r)}=U_r^\top\operatorname{diag}(\phi_c)U_r$, the truncated operator kernel
+For the shadow-feature channels $\phi_1,\dots,\phi_d$ (the columns of $X$) with truncated multiplication
+operators $M_c=M_{\phi_c}^{(r)}=U_r^\top\operatorname{diag}(\phi_c)U_r$, the truncated operator kernel
 \begin{equation}
 \label{eq:nckernel}
 \mathcal K=\sum_{c=1}^{d} M_c M_c^\top
 \end{equation}
 is positive semidefinite, $\mathcal K\succeq0$, and positive definite whenever the truncated
 multiplications share no common left-null vector. Its generators $M_c$ do not pairwise commute
-[Theorem~\ref{thm:noncomm}(ii)], so $\mathcal K$ is the symmetric Gram object of a genuinely
-noncommutative truncated operator $*$-algebra on the cell graph---the graph instance of the noncommutative
-operator structure underlying spectral-truncation kernel machines \cite{hashimoto2026spectral}. At the
-reported scale $\lambda_{\min}(\mathcal K)=\num{1.62}>0$ (Table~\ref{tab:extended}), so $\mathcal K\succ0$
-is strictly positive definite.
+[Theorem~\ref{thm:noncomm}(ii)], so $\mathcal K$ is the symmetric Gram object of a genuinely noncommutative
+truncated operator $*$-algebra on the state graph---the graph instance of the noncommutative operator
+structure underlying spectral-truncation kernel machines \cite{hashimoto2026spectral}. At the reported
+scale $\lambda_{\min}(\mathcal K)=\num{1.62}>0$ (Table~\ref{tab:extended}), so $\mathcal K\succ0$ is
+strictly positive definite.
 \end{theorem}
 \begin{proof}
 For any $v$, $v^\top\mathcal K v=\sum_c v^\top M_cM_c^\top v=\sum_c\|M_c^\top v\|_2^2\ge0$, so
@@ -662,34 +688,34 @@ $F^\star=U_rc^\star\mapsto U_rGGc^\star=U_rc^\star$ is unchanged.
 
 \begin{corollary}[Non-identifiability of a label-free region]
 \label{cor:nonident}
-If a class is absent from the labeled seed $F_0$ on every cell reachable (in the band-limited field) from
+If a phase is absent from the labeled seed $F_0$ on every state reachable (in the band-limited field) from
 the test region, the diffusion assigns it zero mass there and cannot recover it. In particular, when the
-held-out test set lies beyond the labeled support along pseudotime---as on the time split---rare cells
-confined to that region are unrecoverable by smoothing alone, which is the mechanism behind the null
-time-split rare-state recall.
+held-out test set lies beyond the labeled support along the control parameter---as on the schedule split---%
+rare critical states confined to that region are unrecoverable by smoothing alone, which is the mechanism
+behind the null schedule-split rare-state recall.
 \end{corollary}
 \begin{proof}
 $F^\star=(1-\alpha)U_r(I-\alpha B)^{-1}U_r^\top F_0$ is linear in $F_0$; if the $c$-th column of $F_0$ is
 zero on the labeled set then that column of $U_r^\top F_0$ is the projection of a vector supported off the
 reachable region, and the band-limited propagation, whose support is contained in the closure of the
 labeled region under the directed transport, leaves the test rows of that column at zero. The argmax
-read-out can then never select the absent class on those rows.
+read-out can then never select the absent phase on those rows.
 \end{proof}
 
 \begin{theorem}[Inductive consistency of the Nystr\"om extension]
 \label{thm:inductive}
-Let $F^\star_{\mathrm{tr}}$ be the band-limited field on the training cells and, for a held-out cell
+Let $F^\star_{\mathrm{tr}}$ be the band-limited field on the training states and, for a held-out state
 $x_\ast$, let $\widehat F(x_\ast)=\sum_{i\in\mathcal N(x_\ast)} w_i\,F^\star_{\mathrm{tr}}(x_i)$ be its
-Gaussian-weighted average over the $k$ nearest \emph{training} cells, $\sum_i w_i=1$. The estimator uses no
-test--test edge and no held-out connectivity, so the forecaster is inductive. If the field is
-$L$-Lipschitz on the data manifold, then $\|\widehat F(x_\ast)-F^\star(x_\ast)\|_2\le
+Gaussian-weighted average over the $k$ nearest \emph{training} states, $\sum_i w_i=1$. The estimator uses no
+test--test edge and no held-out connectivity, so the classifier is inductive. If the field is $L$-Lipschitz
+on the data manifold, then $\|\widehat F(x_\ast)-F^\star(x_\ast)\|_2\le
 L\max_{i\in\mathcal N(x_\ast)}\|x_i-x_\ast\|_2$, which tends to $0$ as the training sample becomes dense;
 hence $\widehat F\to F^\star$ pointwise under standard manifold-density conditions.
 \end{theorem}
 \begin{proof}
 The estimator reads only the training field and the test-to-train affinities; it never forms an edge
-between two test cells nor consults the held-out adjacency, so by construction inference on $x_\ast$ is
-independent of all other test cells---the definition of an inductive predictor. For the bound, convexity of
+between two test states nor consults the held-out adjacency, so by construction inference on $x_\ast$ is
+independent of all other test states---the definition of an inductive predictor. For the bound, convexity of
 the weighted average and the triangle inequality give
 \begin{widetext}
 \begin{equation}
@@ -703,9 +729,9 @@ conditions, so the right-hand side vanishes.
 
 \begin{theorem}[Distribution-free conformal coverage]
 \label{thm:conformal}
-Let the nonconformity score of a cell with predicted probabilities $p$ and true class $y$ be $s=1-p_y$,
-computed by the fitted forecaster. Given $n_{\mathrm{cal}}$ calibration cells exchangeable with a test
-cell, let $\hat q$ be the $\lceil(n_{\mathrm{cal}}+1)(1-\delta)\rceil/n_{\mathrm{cal}}$ empirical quantile
+Let the nonconformity score of a state with predicted probabilities $p$ and true phase $y$ be $s=1-p_y$,
+computed by the fitted classifier. Given $n_{\mathrm{cal}}$ calibration states exchangeable with a test
+state, let $\hat q$ be the $\lceil(n_{\mathrm{cal}}+1)(1-\delta)\rceil/n_{\mathrm{cal}}$ empirical quantile
 of the calibration scores and form the prediction set $C(x)=\{c:1-p_c(x)\le\hat q\}$. Then
 $\Pr[y_{\mathrm{test}}\in C(x_{\mathrm{test}})]\ge1-\delta$.
 \end{theorem}
@@ -725,67 +751,70 @@ This appendix collects the configuration, estimators, and evaluation protocols b
 main text. All hyperparameters are fixed before evaluation and recorded, together with the platform and
 library versions, in the run artifact \texttt{results/summary.json}.
 
-\paragraph{Synthetic lineage.}
-Cells are generated in an $n_\text{features}$-dimensional space along a tree of three branches (a trunk
-progenitor and two fates that split at pseudotime $t_0=0.45$). Branch means drift from fixed,
-well-separated anchors with progression in pseudotime; each cell is the branch mean plus isotropic Gaussian
-noise of standard deviation \texttt{noise}. The discrete state equals the branch for the common branches;
-the rare state is a new label assigned to a random subset of the late tip ($t>0.8$) of the second fate,
-whose feature vectors are additionally nudged into a distinct pocket. Donor, batch, and perturbation labels
-are drawn independently of branch so that grouping splits are nontrivial. The full-scale configuration is
-$n_\text{cells}=\num{3000}$, $n_\text{features}=\num{16}$, $n_\text{branches}=3$, $n_\text{donors}=8$,
-$n_\text{batches}=4$, $n_\text{perturbations}=5$, $\texttt{noise}=0.7$, $\texttt{rare\_fraction}=0.04$,
+\paragraph{Synthetic benchmark.}
+States are generated in an $n_\text{features}$-dimensional shadow-feature space along a phase diagram of
+three phases (a disordered parent phase and two ordered phases that bifurcate at the critical control
+parameter $s_0=0.45$). Phase centroids drift from fixed, well-separated anchors with the control parameter;
+each state is its phase centroid plus isotropic Gaussian shadow noise of standard deviation \texttt{noise}.
+The discrete phase equals the branch for the common phases; the rare critical regime is a distinct label
+assigned to a random subset of the late tip ($s>0.8$) of the second ordered phase, whose feature vectors are
+additionally displaced into a separate pocket. Device, shot-noise-batch, and Hamiltonian-perturbation labels
+are drawn independently of phase so that grouping splits are nontrivial. The full-scale configuration is
+$n_\text{states}=\num{3000}$, $n_\text{features}=\num{16}$, $n_\text{phases}=3$, $n_\text{devices}=8$,
+$n_\text{batches}=4$, $n_\text{Hamiltonians}=5$, $\texttt{noise}=0.7$, $\texttt{rare\_fraction}=0.04$,
 $k=\num{20}$, $\texttt{label\_fraction}=0.03$, over $n_\text{seeds}=5$ seeds. Generation is fully seeded and
-bit-for-bit reproducible.
+bit-for-bit reproducible. The benchmark is a controlled stand-in for the shadow-feature geometry of a
+parameterized quantum system, not data from a quantum device.
 
 \paragraph{Directed propagator and spectral truncation.}
-A symmetric $k$NN graph is built on cell features (either-direction symmetrization), exactly as standard
-single-cell pipelines do \cite{wolf2018scanpy}. The directed propagator reweights each edge $i\!\to\!j$ by
-$\kappa(t_j-t_i)=\exp(\beta\tanh((t_j-t_i)/\tau))$ and row-normalizes, with $\beta=1.0$ and $\tau=0.2$. The
-graph-Fourier basis $U_r$ is the leading $r=\num{80}$ eigenvectors of $S=D^{-1/2}AD^{-1/2}$, computed with
-a fixed starting vector for determinism. The truncated lazy transport is
-$B=U_r^\top((1-\varepsilon)I+\varepsilon P)U_r$ with $\varepsilon=0.6$, and the band-limited field is
-$F^\star=U_r(I-\alpha B)^{-1}(1-\alpha)U_r^\top F_0$ with $\alpha=0.9$ and $F_0$ the one-hot seed on
-annotated cells (Theorem~\ref{thm:fixedpoint}).
+A symmetric $k$NN graph is built on shadow features (either-direction symmetrization), as standard
+manifold-learning pipelines do \cite{coifman2006diffusion}. The directed propagator reweights each edge
+$i\!\to\!j$ by $\kappa(s_j-s_i)=\exp(\beta\tanh((s_j-s_i)/\tau))$ and row-normalizes, with $\beta=1.0$ and
+$\tau=0.2$. The graph-Fourier basis $U_r$ is the leading $r=\num{80}$ eigenvectors of
+$S=D^{-1/2}AD^{-1/2}$, computed with a fixed starting vector for determinism. The truncated lazy transport
+is $B=U_r^\top((1-\varepsilon)I+\varepsilon P)U_r$ with $\varepsilon=0.6$, and the band-limited field is
+$F^\star=U_r(I-\alpha B)^{-1}(1-\alpha)U_r^\top F_0$ with $\alpha=0.9$ and $F_0$ the one-hot phase seed on
+annotated states (Theorem~\ref{thm:fixedpoint}).
 
-\paragraph{Forecasters.}
-The transductive STDD forecaster builds the graph and basis over all cells; the inductive STDD forecaster
-(the method) builds them on the training cells only and labels held-out cells by a Gaussian-weighted
-average of the training field over each test cell's nearest \emph{training} cells, so held-out connectivity
-is never used (Theorem~\ref{thm:inductive}). The symmetric label-propagation baseline is the transductive
-normalized diffusion of Zhou \textit{et al.}~\cite{zhou2004local} ($\alpha=0.9$, $30$ iterations). The
-point baseline is a plain inductive $k$NN classifier with the same $k$. All read-outs row-normalize the
-non-negative part of the field to a probability simplex; the maximum class probability is the confidence
-used for calibration.
+\paragraph{Classifiers.}
+The transductive STDD classifier builds the graph and basis over all states; the inductive STDD classifier
+(the method) builds them on the training states only and labels held-out states by a Gaussian-weighted
+average of the training field over each test state's nearest \emph{training} states, so held-out
+connectivity is never used (Theorem~\ref{thm:inductive}). The symmetric label-propagation baseline is the
+transductive normalized diffusion of Zhou \textit{et al.}~\cite{zhou2004local} ($\alpha=0.9$, $30$
+iterations). The point baseline is a plain inductive $k$NN classifier with the same $k$. All read-outs
+row-normalize the non-negative part of the field to a probability simplex; the maximum phase probability is
+the confidence used for calibration.
 
 \paragraph{Splits and annotation.}
-Four leakage-checked protocols evaluate transfer: donor and batch (hold out whole groups), time (train on
-early pseudotime, test on late---a forward-in-time extrapolation), and perturbation (hold out a whole
-condition). For grouping splits the test suite asserts that no held-out group appears in both train and
-test. Only \texttt{label\_fraction} of the train pool is annotated, lightly stratified so that a few labels
-exist for each present state, including the rare one.
+Four leakage-checked protocols evaluate transfer: device and shot-noise batch (hold out whole groups),
+schedule (train at early control parameter, test at late---a forward extrapolation across the transition),
+and Hamiltonian (hold out a whole perturbation condition). For grouping splits the test suite asserts that
+no held-out group appears in both train and test. Only \texttt{label\_fraction} of the train pool is
+annotated, lightly stratified so that a few labels exist for each present phase, including the rare critical
+one.
 
 \paragraph{Conformal calibration.}
-On an exchangeable random hold-out, the inductive forecaster is fit on the annotated train cells and
+On an exchangeable random hold-out, the inductive classifier is fit on the annotated train states and
 calibrated on an annotated calibration slice: a single temperature is fit by grid-minimizing calibration
 negative log-likelihood, and the split-conformal threshold is the
 $\lceil(n_{\mathrm{cal}}+1)(1-\delta)\rceil/n_{\mathrm{cal}}$ quantile of the calibration nonconformity
 scores $1-p_y$, with $\delta=0.1$ (Theorem~\ref{thm:conformal}). Realized coverage, set size, and
-raw-versus-calibrated ECE are measured on the test cells.
+raw-versus-calibrated ECE are measured on the test states.
 
 \paragraph{Persistence and active sampling.}
-The degree-$0$ persistence barcode of the cell cloud is computed exactly by union--find on the $k$NN
+The degree-$0$ persistence barcode of the state cloud is computed exactly by union--find on the $k$NN
 distance graph (the finite $H_0$ bars are the minimum-spanning-tree edge weights), giving the
 $\beta_0(\epsilon)$ curve and barcode statistics. The persistence-guided active-sampling policy scores
-unlabeled cells by forecast uncertainty (entropy) times per-cell topological isolation (the $k$-th
-nearest-neighbor distance, the per-cell witness of a long $H_0$ bar) and greedily takes the top
-\texttt{active\_budget}$=\num{60}$ cells; baselines are the inverse-density policy of prior work and
-uniform random querying. Rare-state recall on the remaining unlabeled cells is the lift.
+unlabeled states by prediction uncertainty (entropy) times per-state topological isolation (the $k$-th
+nearest-neighbor distance, the per-state witness of a long $H_0$ bar) and greedily takes the top
+\texttt{active\_budget}$=\num{60}$ states; baselines are the inverse-density policy of prior work and
+uniform random querying. Rare-state recall on the remaining unlabeled states is the lift.
 
 \paragraph{Metrics, aggregation, and reproducibility.}
-Accuracy is the fraction of held-out cells classified correctly; ECE is the population-weighted gap between
-mean confidence and accuracy over ten bins; rare-state recall is the fraction of true rare cells recovered
-(returning $1$ when a test set contains no rare cells). The non-normality witness is
+Accuracy is the fraction of held-out states classified correctly; ECE is the population-weighted gap between
+mean confidence and accuracy over ten bins; rare-state recall is the fraction of true rare critical states
+recovered (returning $1$ when a test set contains no rare states). The non-normality witness is
 $\nu(P)=\|PP^\top-P^\top P\|_F/\|P\|_F^2$. All metrics are averaged over $5$ seeds with \SI{95}{\percent}
 confidence intervals $1.96\,s/\sqrt{n}$. All computation is CPU-only (NumPy, SciPy, scikit-learn, NetworkX,
 Matplotlib). The full-scale run is launched with \texttt{scripts/run.py} on \texttt{configs/full.yaml};
@@ -797,34 +826,36 @@ Tables~\ref{tab:main} and \ref{tab:extended} are generated verbatim from it by
 \section{From-scratch derivation of the implemented method}
 \label{sec:scratch}
 This appendix is written to be read top-to-bottom by someone who has seen linear algebra and basic
-probability but not single-cell biology, graph-based semi-supervised learning, or operator theory. Each
-part names the source file it maps to in the package \texttt{topocell}, so that theory and implementation
-can be read side by side.
+probability but not graph-based semi-supervised learning or operator theory. Each part names the source
+file it maps to in the package \texttt{topocell}, so that theory and implementation can be read side by
+side.
 
 \paragraph{The problem and the data (\texttt{src/topocell/synthetic.py}).}
-A single-cell experiment measures thousands of cells, each a feature vector (after dimensionality
-reduction). Cells lie near a low-dimensional manifold tracing differentiation. The task is forecasting:
-predict the discrete state of a cell under a condition not directly observed---a donor, batch, later
-timepoint, or perturbation. Only a handful of cells are annotated, and the decisive states are often rare.
-We do not ship real data (\texttt{ingest.py} holds honest hooks); instead we generate a fully controlled
-branching lineage with three branches over a pseudotime coordinate $t\in[0,1]$, a rare state carved from
-the late tip of one fate, and donor/batch/perturbation metadata assigned independently of biology so that
-the held-out splits are nontrivial.
+A measurement campaign on a parameterized quantum system yields, for each prepared state, a feature vector
+of estimated observables (a classical shadow). States lie near a low-dimensional manifold---the phase
+diagram. The task is classification: predict the discrete phase of a state under a condition not directly
+observed---a new device, calibration batch, later control-parameter value, or perturbed Hamiltonian. Only a
+handful of states are annotated, and the decisive regimes are often rare. We do not ship real data
+(\texttt{ingest.py} holds honest hooks); instead we generate a fully controlled phase sweep with three
+phases over a control-parameter coordinate $s\in[0,1]$, a rare critical regime carved from the late tip of
+one ordered phase, and device/batch/Hamiltonian metadata assigned independently of phase so that the
+held-out splits are nontrivial.
 
-\paragraph{From points to a directed operator (\texttt{graph.py}, \texttt{operators.py}).}
-The $k$NN graph connects each cell to its $k$ nearest neighbors (either-direction symmetrization), giving a
+\paragraph{From states to a directed operator (\texttt{graph.py}, \texttt{operators.py}).}
+The $k$NN graph connects each state to its $k$ nearest neighbors (either-direction symmetrization), giving a
 symmetric adjacency $A$. The degree is $d_i=\sum_jA_{ij}$ and $D=\operatorname{diag}(d_i)$. The standard
 smoother uses the symmetric normalized adjacency $S=D^{-1/2}AD^{-1/2}$, which is self-adjoint and therefore
 blind to direction. Our operator instead reweights each directed edge by a bounded forward kernel of the
-pseudotime increment, $W_{ij}=A_{ij}\exp(\beta\tanh((t_j-t_i)/\tau))$, and row-normalizes to a transition
-matrix $P=D_W^{-1}W$. Because forward and backward edges receive different weights, $P$ is non-self-adjoint:
-$PP^\top\neq P^\top P$. The relative non-normality $\nu(P)=\|PP^\top-P^\top P\|_F/\|P\|_F^2$ is the scalar
-witness of this noncommutativity (Theorem~\ref{thm:noncomm}).
+control-parameter increment, $W_{ij}=A_{ij}\exp(\beta\tanh((s_j-s_i)/\tau))$, and row-normalizes to a
+transition matrix $P=D_W^{-1}W$. Because forward and backward edges receive different weights, $P$ is
+non-self-adjoint: $PP^\top\neq P^\top P$. The relative non-normality
+$\nu(P)=\|PP^\top-P^\top P\|_F/\|P\|_F^2$ is the scalar witness of this noncommutativity
+(Theorem~\ref{thm:noncomm}).
 
 \paragraph{Spectral truncation (\texttt{operators.py}).}
 The graph-Fourier modes are the eigenvectors $u_1,\dots,u_n$ of $S$; the $r$ with the largest eigenvalues
 are the smoothest functions on the graph. Restricting the diffusion to their span $\Pi_r=U_rU_r^\top$ is a
-spectral truncation: it keeps the low-frequency, label-relevant structure and discards high-frequency
+spectral truncation: it keeps the low-frequency, phase-relevant structure and discards high-frequency shot
 noise, and by Theorem~\ref{thm:trunc} it gives the Eckart--Young-optimal rank-$r$ approximation of the
 positive-semidefinite diffusion filter the method applies (and maximizes the retained smoothing energy
 $\operatorname{Tr}(\Pi_r S)$). The truncated, lazy directed transport is
@@ -834,29 +865,29 @@ $M_\phi^{(r)}=U_r^\top\operatorname{diag}(\phi)U_r$ do not commute (Theorem~\ref
 instance of the spectral-truncation noncommutativity of $C^*$-algebraic kernel machines.
 
 \paragraph{The closed-form diffusion and its inductive extension (\texttt{operators.py}).}
-We seed one-hot labels $F_0$ on the annotated cells and solve the reduced normal equations
+We seed one-hot phase labels $F_0$ on the annotated states and solve the reduced normal equations
 $(I-\alpha B)c=(1-\alpha)U_r^\top F_0$ in closed form; the field is $F^\star=U_rc$. By
 Theorem~\ref{thm:fixedpoint} this is the unique fixed point of the band-limited directed diffusion and the
 limit of its power iteration, well posed for $\alpha\,\sigma_{\max}(B)<1$, and invariant to the sign gauge
-of the eigenvectors. The transductive forecaster builds $A,U_r,P$ over all cells; the inductive forecaster
-builds them on the training cells only and labels a held-out cell by a Gaussian-weighted average of the
-training field over its nearest \emph{training} cells---a Nystr\"om/Nadaraya--Watson extension that never
+of the eigenvectors. The transductive classifier builds $A,U_r,P$ over all states; the inductive classifier
+builds them on the training states only and labels a held-out state by a Gaussian-weighted average of the
+training field over its nearest \emph{training} states---a Nystr\"om/Nadaraya--Watson extension that never
 touches held-out connectivity (Theorem~\ref{thm:inductive}). This is the matched inductive control that
 resolves the transductive-versus-inductive confound of symmetric-smoothing studies.
 
 \paragraph{Conformal calibration and persistent homology (\texttt{conformal.py}, \texttt{persistence.py}).}
-Split conformal prediction holds out a calibration slice of the annotated cells, computes the nonconformity
-scores $1-p_y$, and thresholds at the conformal quantile to form prediction sets with finite-sample
-coverage $\ge1-\delta$ under exchangeability (Theorem~\ref{thm:conformal}); temperature scaling
-additionally recalibrates the scalar confidence. The degree-$0$ persistence barcode of the cell cloud is
-computed exactly by union--find on the $k$NN distance graph---the finite $H_0$ bars are the
-minimum-spanning-tree edge weights---so $\beta_0(\epsilon)=\#\{\text{bars}>\epsilon\}+1$ is a genuine
-multiscale invariant, and the per-cell $k$-th-nearest-neighbor distance is the per-cell witness of a long
-bar, used by the active sampler.
+Split conformal prediction holds out a calibration slice of the annotated states, computes the nonconformity
+scores $1-p_y$, and thresholds at the conformal quantile to form prediction sets with finite-sample coverage
+$\ge1-\delta$ under exchangeability (Theorem~\ref{thm:conformal}); temperature scaling additionally
+recalibrates the scalar confidence. The degree-$0$ persistence barcode of the state cloud is computed
+exactly by union--find on the $k$NN distance graph---the finite $H_0$ bars are the minimum-spanning-tree
+edge weights---so $\beta_0(\epsilon)=\#\{\text{bars}>\epsilon\}+1$ is a genuine multiscale invariant of the
+phase diagram, and the per-state $k$-th-nearest-neighbor distance is the per-state witness of a long bar,
+used by the active sampler.
 
 \paragraph{Reproducibility object (\texttt{runner.py}, \texttt{scripts/}).}
-\texttt{runner.py} ties everything together: it generates the lineage, builds the operator, records the
-non-normality and commutator diagnostics and the persistence barcode, runs the four forecasters under all
+\texttt{runner.py} ties everything together: it generates the phase sweep, builds the operator, records the
+non-normality and commutator diagnostics and the persistence barcode, runs the four classifiers under all
 four splits over five seeds, calibrates by conformal prediction, compares active-sampling policies, and
 writes \texttt{results/summary.json}---the single source of truth. Nothing in the paper is typed by hand:
 \texttt{make\_tables.py} renders Tables~\ref{tab:main} and \ref{tab:extended} and \texttt{make\_figures.py}
@@ -871,13 +902,54 @@ python scripts/run.py \
 python scripts/make_tables.py
 python scripts/make_figures.py
 \end{verbatim}
-The reported run uses $\num{3000}$ cells, $\num{16}$ features, $\num{8}$ donors, $\num{4}$ batches,
-$\num{5}$ perturbations, $\sim$\SI{4}{\percent} rare state, $k=\num{20}$, truncation rank $r=\num{80}$,
-$\alpha=0.9$, $\beta=1.0$, $\varepsilon=0.6$, and $\num{5}$ seeds; the provenance block records a runtime of
-\SI{32.0}{\second} and peak memory of \SI{621.2}{\mega\byte} on a laptop CPU.
+The reported run uses $\num{3000}$ states, $\num{16}$ shadow features, $\num{8}$ devices, $\num{4}$
+shot-noise batches, $\num{5}$ Hamiltonian perturbations, $\sim$\SI{4}{\percent} rare critical regime,
+$k=\num{20}$, truncation rank $r=\num{80}$, $\alpha=0.9$, $\beta=1.0$, $\varepsilon=0.6$, and $\num{5}$
+seeds; the provenance block records a runtime of \SI{32.0}{\second} and peak memory of
+\SI{621.2}{\mega\byte} on a laptop CPU.
 
 \begin{thebibliography}{99}
 \sloppy
+
+\bibitem{huang2020shadows}
+H.-Y. Huang, R.~Kueng, and J.~Preskill,
+Predicting many properties of a quantum system from very few measurements,
+\emph{Nat. Phys.} \textbf{16}, 1050 (2020).
+
+\bibitem{elben2023randomized}
+A.~Elben, S.~T. Flammia, H.-Y. Huang \emph{et al.},
+The randomized measurement toolbox,
+\emph{Nat. Rev. Phys.} \textbf{5}, 9 (2023).
+
+\bibitem{carrasquilla2017ml}
+J.~Carrasquilla and R.~G. Melko,
+Machine learning phases of matter,
+\emph{Nat. Phys.} \textbf{13}, 431 (2017).
+
+\bibitem{vannieuwenburg2017confusion}
+E.~P.~L. van~Nieuwenburg, Y.-H. Liu, and S.~D. Huber,
+Learning phase transitions by confusion,
+\emph{Nat. Phys.} \textbf{13}, 435 (2017).
+
+\bibitem{carleo2019rmp}
+G.~Carleo, I.~Cirac, K.~Cranmer \emph{et al.},
+Machine learning and the physical sciences,
+\emph{Rev. Mod. Phys.} \textbf{91}, 045002 (2019).
+
+\bibitem{biamonte2017qml}
+J.~Biamonte, P.~Wittek, N.~Pancotti, P.~Rebentrost, N.~Wiebe, and S.~Lloyd,
+Quantum machine learning,
+\emph{Nature} \textbf{549}, 195 (2017).
+
+\bibitem{havlicek2019}
+V.~Havl\'i\v{c}ek, A.~D. C\'orcoles, K.~Temme \emph{et al.},
+Supervised learning with quantum-enhanced feature spaces,
+\emph{Nature} \textbf{567}, 209 (2019).
+
+\bibitem{schuld2019}
+M.~Schuld and N.~Killoran,
+Quantum machine learning in feature Hilbert spaces,
+\emph{Phys. Rev. Lett.} \textbf{122}, 040504 (2019).
 
 \bibitem{hashimoto2026spectral}
 Y.~Hashimoto, A.~Hafid, M.~Ikeda, and H.~Kadri,
@@ -889,6 +961,11 @@ W.~D.~van~Suijlekom,
 Gromov--Hausdorff convergence of state spaces for spectral truncations,
 \emph{J. Geom. Phys.} \textbf{162}, 104075 (2021).
 
+\bibitem{connes2021truncations}
+A.~Connes and W.~D.~van~Suijlekom,
+Spectral truncations in noncommutative geometry and operator systems,
+\emph{Commun. Math. Phys.} \textbf{383}, 2021 (2021).
+
 \bibitem{zhou2004local}
 D.~Zhou, O.~Bousquet, T.~N.~Lal, J.~Weston, and B.~Sch\"olkopf,
 Learning with local and global consistency,
@@ -898,42 +975,6 @@ Learning with local and global consistency,
 X.~Zhu and Z.~Ghahramani,
 Learning from labeled and unlabeled data with label propagation,
 Tech. Rep. CMU-CALD-02-107, Carnegie Mellon University (2002).
-
-\bibitem{haghverdi2016diffusion}
-L.~Haghverdi, M.~B\"uttner, F.~A.~Wolf, F.~Buettner, and F.~J.~Theis,
-Diffusion pseudotime robustly reconstructs lineage branching,
-\emph{Nat. Methods} \textbf{13}, 845 (2016).
-
-\bibitem{trapnell2014monocle}
-C.~Trapnell, D.~Cacchiarelli, J.~Grimsby \emph{et al.},
-The dynamics and regulators of cell fate decisions are revealed by pseudotemporal ordering of single
-cells,
-\emph{Nat. Biotechnol.} \textbf{32}, 381 (2014).
-
-\bibitem{wolf2018scanpy}
-F.~A.~Wolf, P.~Angerer, and F.~J.~Theis,
-SCANPY: Large-scale single-cell gene expression data analysis,
-\emph{Genome Biol.} \textbf{19}, 15 (2018).
-
-\bibitem{lamanno2018velocity}
-G.~La~Manno, R.~Soldatov, A.~Zeisel \emph{et al.},
-RNA velocity of single cells,
-\emph{Nature} \textbf{560}, 494 (2018).
-
-\bibitem{lange2022cellrank}
-M.~Lange, V.~Bergen, M.~Klein \emph{et al.},
-CellRank for directed single-cell fate mapping,
-\emph{Nat. Methods} \textbf{19}, 159 (2022).
-
-\bibitem{becht2019umap}
-E.~Becht, L.~McInnes, J.~Healy \emph{et al.},
-Dimensionality reduction for visualizing single-cell data using UMAP,
-\emph{Nat. Biotechnol.} \textbf{37}, 38 (2019).
-
-\bibitem{mcinnes2018umap}
-L.~McInnes, J.~Healy, and J.~Melville,
-UMAP: Uniform Manifold Approximation and Projection for dimension reduction,
-arXiv:1802.03426 (2018).
 
 \bibitem{coifman2006diffusion}
 R.~R.~Coifman and S.~Lafon,
@@ -945,20 +986,30 @@ M.~Belkin and P.~Niyogi,
 Laplacian eigenmaps for dimensionality reduction and data representation,
 \emph{Neural Comput.} \textbf{15}, 1373 (2003).
 
-\bibitem{vandermaaten2008tsne}
-L.~van~der~Maaten and G.~Hinton,
-Visualizing data using t-SNE,
-\emph{J. Mach. Learn. Res.} \textbf{9}, 2579 (2008).
-
 \bibitem{luxburg2007spectral}
 U.~von~Luxburg,
 A tutorial on spectral clustering,
 \emph{Stat. Comput.} \textbf{17}, 395 (2007).
 
+\bibitem{vandermaaten2008tsne}
+L.~van~der~Maaten and G.~Hinton,
+Visualizing data using t-SNE,
+\emph{J. Mach. Learn. Res.} \textbf{9}, 2579 (2008).
+
 \bibitem{chung2005directed}
 F.~Chung,
 Laplacians and the Cheeger inequality for directed graphs,
 \emph{Ann. Comb.} \textbf{9}, 1 (2005).
+
+\bibitem{ashida2020nonhermitian}
+Y.~Ashida, Z.~Gong, and M.~Ueda,
+Non-Hermitian physics,
+\emph{Adv. Phys.} \textbf{69}, 249 (2020).
+
+\bibitem{sachdev2011qpt}
+S.~Sachdev,
+\emph{Quantum Phase Transitions}, 2nd ed.
+(Cambridge University Press, 2011).
 
 \bibitem{williams2001nystrom}
 C.~K.~I.~Williams and M.~Seeger,
@@ -1005,15 +1056,15 @@ B.~Settles,
 Active learning literature survey,
 Comput. Sci. Tech. Rep. 1648, University of Wisconsin--Madison (2009).
 
-\bibitem{saelens2019trajectory}
-W.~Saelens, R.~Cannoodt, H.~Todorov, and Y.~Saeys,
-A comparison of single-cell trajectory inference methods,
-\emph{Nat. Biotechnol.} \textbf{37}, 547 (2019).
+\bibitem{patti2022multibasis}
+T.~L.~Patti, J.~Kossaifi, A.~Anandkumar, and S.~F.~Yelin,
+Variational quantum optimization with multibasis encodings,
+\emph{Phys. Rev. Research} \textbf{4}, 033154 (2022).
 
-\bibitem{luecken2019bestpractices}
-M.~D.~Luecken and F.~J.~Theis,
-Current best practices in single-cell RNA-seq analysis: A tutorial,
-\emph{Mol. Syst. Biol.} \textbf{15}, e8746 (2019).
+\bibitem{cerezo2021vqa}
+M.~Cerezo, A.~Arrasmith, R.~Babbush \emph{et al.},
+Variational quantum algorithms,
+\emph{Nat. Rev. Phys.} \textbf{3}, 625 (2021).
 
 \end{thebibliography}
 

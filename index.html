@@ -401,6 +401,41 @@ cd .. &amp;&amp; tectonic main.tex                      <span class="c"># or: la
   <p class="meta">No biological data were used or generated. All results derive from a seeded synthetic lineage regenerated deterministically by the code.</p>
 </section>
 
+<!-- ============================ REFERENCES ============================ -->
+<section id="references">
+  <h2><span class="num">9</span>References</h2>
+  <p class="lead">The construction sits at the intersection of several literatures. Its diffusion backbone is <em>graph-based semi-supervised learning</em> &mdash; label propagation and learning with local and global consistency (Zhu &amp; Ghahramani; Zhou et al.). Its arrow comes from single-cell <em>pseudotime, RNA-velocity and fate mapping</em> (Haghverdi et al.; La Manno et al.; Lange et al.). It is made inductive by an out-of-sample <em>Nystr&ouml;m</em> extension (Williams &amp; Seeger; Bengio et al.), calibrated by distribution-free <em>conformal prediction</em> (Vovk et al.; Lei et al.), and read out with a <em>persistent-homology</em> descriptor (Edelsbrunner &amp; Harer; Carlsson). The non-self-adjoint propagator is the single-cell instance of the operator noncommutativity that recent $C^{*}$-algebraic spectral-truncation kernel machines exploit for expressiveness (Hashimoto et al.; van Suijlekom).</p>
+  <ol style="font-size:.9rem;line-height:1.7;color:var(--ink)">
+    <li>Y. Hashimoto, A. Hafid, M. Ikeda, and H. Kadri, &ldquo;Spectral truncation kernels: Noncommutativity in $C^{*}$-algebraic kernel machines,&rdquo; <em>J. Mach. Learn. Res.</em> (2026); arXiv:<a href="https://arxiv.org/abs/2405.17823" target="_blank" rel="noreferrer">2405.17823</a>.</li>
+    <li>W. D. van Suijlekom, &ldquo;Gromov&ndash;Hausdorff convergence of state spaces for spectral truncations,&rdquo; <em>J. Geom. Phys.</em> <strong>162</strong>, 104075 (2021).</li>
+    <li>D. Zhou, O. Bousquet, T. N. Lal, J. Weston, and B. Sch&ouml;lkopf, &ldquo;Learning with local and global consistency,&rdquo; <em>Adv. Neural Inf. Process. Syst.</em> <strong>16</strong>, 321 (2004).</li>
+    <li>X. Zhu and Z. Ghahramani, &ldquo;Learning from labeled and unlabeled data with label propagation,&rdquo; Tech. Rep. CMU-CALD-02-107, Carnegie Mellon University (2002).</li>
+    <li>L. Haghverdi, M. B&uuml;ttner, F. A. Wolf, F. Buettner, and F. J. Theis, &ldquo;Diffusion pseudotime robustly reconstructs lineage branching,&rdquo; <em>Nat. Methods</em> <strong>13</strong>, 845 (2016).</li>
+    <li>C. Trapnell, D. Cacchiarelli, J. Grimsby <em>et al.</em>, &ldquo;The dynamics and regulators of cell fate decisions are revealed by pseudotemporal ordering of single cells,&rdquo; <em>Nat. Biotechnol.</em> <strong>32</strong>, 381 (2014).</li>
+    <li>F. A. Wolf, P. Angerer, and F. J. Theis, &ldquo;SCANPY: Large-scale single-cell gene expression data analysis,&rdquo; <em>Genome Biol.</em> <strong>19</strong>, 15 (2018).</li>
+    <li>G. La Manno, R. Soldatov, A. Zeisel <em>et al.</em>, &ldquo;RNA velocity of single cells,&rdquo; <em>Nature</em> <strong>560</strong>, 494 (2018).</li>
+    <li>M. Lange, V. Bergen, M. Klein <em>et al.</em>, &ldquo;CellRank for directed single-cell fate mapping,&rdquo; <em>Nat. Methods</em> <strong>19</strong>, 159 (2022).</li>
+    <li>E. Becht, L. McInnes, J. Healy <em>et al.</em>, &ldquo;Dimensionality reduction for visualizing single-cell data using UMAP,&rdquo; <em>Nat. Biotechnol.</em> <strong>37</strong>, 38 (2019).</li>
+    <li>L. McInnes, J. Healy, and J. Melville, &ldquo;UMAP: Uniform Manifold Approximation and Projection for dimension reduction,&rdquo; arXiv:<a href="https://arxiv.org/abs/1802.03426" target="_blank" rel="noreferrer">1802.03426</a> (2018).</li>
+    <li>R. R. Coifman and S. Lafon, &ldquo;Diffusion maps,&rdquo; <em>Appl. Comput. Harmon. Anal.</em> <strong>21</strong>, 5 (2006).</li>
+    <li>M. Belkin and P. Niyogi, &ldquo;Laplacian eigenmaps for dimensionality reduction and data representation,&rdquo; <em>Neural Comput.</em> <strong>15</strong>, 1373 (2003).</li>
+    <li>L. van der Maaten and G. Hinton, &ldquo;Visualizing data using t-SNE,&rdquo; <em>J. Mach. Learn. Res.</em> <strong>9</strong>, 2579 (2008).</li>
+    <li>U. von Luxburg, &ldquo;A tutorial on spectral clustering,&rdquo; <em>Stat. Comput.</em> <strong>17</strong>, 395 (2007).</li>
+    <li>F. Chung, &ldquo;Laplacians and the Cheeger inequality for directed graphs,&rdquo; <em>Ann. Comb.</em> <strong>9</strong>, 1 (2005).</li>
+    <li>C. K. I. Williams and M. Seeger, &ldquo;Using the Nystr&ouml;m method to speed up kernel machines,&rdquo; <em>Adv. Neural Inf. Process. Syst.</em> <strong>13</strong>, 682 (2001).</li>
+    <li>Y. Bengio, J.-F. Paiement, P. Vincent <em>et al.</em>, &ldquo;Out-of-sample extensions for LLE, Isomap, MDS, eigenmaps, and spectral clustering,&rdquo; <em>Adv. Neural Inf. Process. Syst.</em> <strong>16</strong>, 177 (2004).</li>
+    <li>V. Vovk, A. Gammerman, and G. Shafer, <em>Algorithmic Learning in a Random World</em> (Springer, 2005).</li>
+    <li>J. Lei, M. G&rsquo;Sell, A. Rinaldo, R. J. Tibshirani, and L. Wasserman, &ldquo;Distribution-free predictive inference for regression,&rdquo; <em>J. Am. Stat. Assoc.</em> <strong>113</strong>, 1094 (2018).</li>
+    <li>C. Guo, G. Pleiss, Y. Sun, and K. Q. Weinberger, &ldquo;On calibration of modern neural networks,&rdquo; in <em>Proc. Int. Conf. Mach. Learn. (ICML)</em> (2017), p. 1321.</li>
+    <li>H. Edelsbrunner and J. L. Harer, <em>Computational Topology: An Introduction</em> (American Mathematical Society, 2010).</li>
+    <li>G. Carlsson, &ldquo;Topology and data,&rdquo; <em>Bull. Am. Math. Soc.</em> <strong>46</strong>, 255 (2009).</li>
+    <li>T. N. Kipf and M. Welling, &ldquo;Semi-supervised classification with graph convolutional networks,&rdquo; in <em>Proc. Int. Conf. Learn. Represent. (ICLR)</em> (2017).</li>
+    <li>B. Settles, &ldquo;Active learning literature survey,&rdquo; Comput. Sci. Tech. Rep. 1648, University of Wisconsin&ndash;Madison (2009).</li>
+    <li>W. Saelens, R. Cannoodt, H. Todorov, and Y. Saeys, &ldquo;A comparison of single-cell trajectory inference methods,&rdquo; <em>Nat. Biotechnol.</em> <strong>37</strong>, 547 (2019).</li>
+    <li>M. D. Luecken and F. J. Theis, &ldquo;Current best practices in single-cell RNA-seq analysis: A tutorial,&rdquo; <em>Mol. Syst. Biol.</em> <strong>15</strong>, e8746 (2019).</li>
+  </ol>
+</section>
+
 </main>
 
 <footer>

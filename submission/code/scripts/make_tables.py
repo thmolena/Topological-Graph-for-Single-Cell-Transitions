@@ -18,6 +18,15 @@ LABELS = {
     "baseline_knn": "$k$NN baseline",
 }
 ORDER = ["std_inductive", "std_transductive", "label_prop", "baseline_knn"]
+# Quantum-domain display names for the four held-out transfer protocols
+# (device / shot-noise / drive schedule / Hamiltonian perturbation). Data keys
+# are unchanged; only the printed label differs.
+SPLIT_LABELS = {
+    "donor": "device",
+    "batch": "noise",
+    "time": "schedule",
+    "perturbation": "Hamiltonian",
+}
 
 
 def main() -> None:
@@ -32,7 +41,7 @@ def main() -> None:
     for split, m in by_split.items():
         for method in ORDER:
             d = m[method]
-            lines.append(f"{split} & {LABELS[method]} & {d['accuracy']['mean']:.4f} & "
+            lines.append(f"{SPLIT_LABELS.get(split, split)} & {LABELS[method]} & {d['accuracy']['mean']:.4f} & "
                          f"{d['ece']['mean']:.4f} & {d['rare_recall']['mean']:.4f} \\\\")
         lines.append(r"\addlinespace[2pt]")
     lines += [r"\bottomrule", r"\end{tabular}"]

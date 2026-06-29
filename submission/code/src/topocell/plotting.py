@@ -67,6 +67,16 @@ METHOD_LABELS = {
 }
 GREY = "#9E9E9E"
 
+# Display names for the four held-out transfer protocols (quantum-domain framing:
+# the grouping variables are device, shot-noise realization, drive schedule, and
+# Hamiltonian perturbation). Only display strings -- the data keys are unchanged.
+SPLIT_LABELS = {
+    "donor": "device",
+    "batch": "noise",
+    "time": "schedule",
+    "perturbation": "Hamiltonian",
+}
+
 
 def apply_nmi_style() -> None:
     """Install NMI-conforming matplotlib defaults (idempotent)."""
@@ -135,8 +145,8 @@ def fig_schematic(summary: Dict, out: Path) -> Path:
         "#D6E6F2", "#D6EFE3", "#FBE6D4", "#ECDCE9", "#ECECEC")
     y, h = 0.40, 0.34
     boxes = [
-        (0.005, 0.150, "synthetic lineage\ncells $\\times$ features\nbranch, donor, batch,\npert., pseudotime", blue),
-        (0.190, 0.170, "directed cell graph\n$P\\!=\\!D_W^{-1}W$,\n$\\kappa(t_j\\!-\\!t_i)$\n(non-normal)", green),
+        (0.005, 0.150, "synthetic phase sweep\nstates $\\times$ shadow feats.\nphase, device, noise,\npert., control $s$", blue),
+        (0.190, 0.170, "directed state graph\n$P\\!=\\!D_W^{-1}W$,\n$\\kappa(s_j\\!-\\!s_i)$\n(non-normal)", green),
         (0.405, 0.155, "spectral truncation\n$B\\!=\\!\\Pi_r P\\,\\Pi_r$\n(band-limited)", orange),
         (0.610, 0.165, "inductive Nystrom\nextension +\nconformal sets", purple),
         (0.825, 0.160, "accuracy, ECE,\nrare-state recall,\ncoverage", grey),
@@ -148,8 +158,8 @@ def fig_schematic(summary: Dict, out: Path) -> Path:
     for i in range(len(boxes) - 1):
         _arrow(ax, rights[i], lefts[i + 1])
     ax.text(0.5, 0.075,
-            "pseudotime-directed (noncommutative) transport $\\times$ spectral "
-            "truncation   $\\bullet$   targets the $\\sim$4% rare state, "
+            "drive-directed (noncommutative) transport $\\times$ spectral "
+            "truncation   $\\bullet$   targets the $\\sim$4% rare critical regime, "
             "no held-out connectivity at inference",
             ha="center", va="center", fontsize=6.6, color="#555555")
     ax.text(0.5, 0.95,
@@ -178,10 +188,10 @@ def fig_lineage(summary: Dict, out: Path) -> Path:
     rare = lin.state == lin.rare_state
     ax.scatter(lin.X[rare, 0], lin.X[rare, 1], c="#CC79A7", s=34, marker="*",
                edgecolors="k", linewidths=0.4,
-               label=f"rare state ({rare.mean()*100:.1f}% of cells)")
+               label=f"rare regime ({rare.mean()*100:.1f}% of states)")
     cbar = fig.colorbar(sc, ax=ax, fraction=0.046, pad=0.04)
-    cbar.set_label("pseudotime"); cbar.outline.set_linewidth(0.8)
-    ax.set_xlabel("feature 1"); ax.set_ylabel("feature 2")
+    cbar.set_label("control parameter $s$"); cbar.outline.set_linewidth(0.8)
+    ax.set_xlabel("shadow feature 1"); ax.set_ylabel("shadow feature 2")
     ax.legend(loc="lower right", handlelength=1.2)
 
     pers = summary.get("persistence", {})
@@ -206,7 +216,8 @@ def _bars_two(ax, splits, m1, m2, key, by_split, c1, c2, l1, l2):
     ek = {"elinewidth": 0.7, "capthick": 0.7}
     ax.bar(x - w / 2, v1, w, yerr=e1, capsize=2, error_kw=ek, label=l1, color=c1)
     ax.bar(x + w / 2, v2, w, yerr=e2, capsize=2, error_kw=ek, label=l2, color=c2)
-    ax.set_xticks(x); ax.set_xticklabels(splits, rotation=20, ha="right")
+    ax.set_xticks(x)
+    ax.set_xticklabels([SPLIT_LABELS.get(s, s) for s in splits], rotation=20, ha="right")
     ax.grid(True, axis="y")
 
 
@@ -236,7 +247,8 @@ def fig_forecast_bars(summary: Dict, out: Path) -> Path:
         e = [by_split[s][m]["rare_recall"]["ci95"] for s in splits]
         ax.bar(x + (i - 1) * w, v, w, yerr=e, capsize=1.5, error_kw=ek,
                label=METHOD_LABELS[m], color=METHOD_COLORS[m])
-    ax.set_xticks(x); ax.set_xticklabels(splits, rotation=20, ha="right")
+    ax.set_xticks(x)
+    ax.set_xticklabels([SPLIT_LABELS.get(s, s) for s in splits], rotation=20, ha="right")
     ax.set_ylabel("rare-state recall"); ax.set_ylim(0, 1.05); ax.grid(True, axis="y")
     ax.legend(loc="upper left", handlelength=1.1); panel_label(ax, "b")
 

@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from topocell import metrics
+from stdd import metrics
 
 
 def test_accuracy_bounds():

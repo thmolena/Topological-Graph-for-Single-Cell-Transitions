@@ -1,4 +1,4 @@
-# topocell -- reproducible build. macOS: export KMP_DUPLICATE_LIB_OK to avoid
+# stdd -- reproducible build. macOS: export KMP_DUPLICATE_LIB_OK to avoid
 # the duplicate-libomp abort when conda + pip both ship an OpenMP runtime.
 export KMP_DUPLICATE_LIB_OK = TRUE
 PY ?= python

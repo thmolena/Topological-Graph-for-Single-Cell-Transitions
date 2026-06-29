@@ -2,7 +2,7 @@
 exchangeable data and temperature scaling must not change the predictions."""
 import numpy as np
 
-from topocell.conformal import (
+from stdd.conformal import (
     apply_temperature,
     conformal_threshold,
     empirical_coverage,

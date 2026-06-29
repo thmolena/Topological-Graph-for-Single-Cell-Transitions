@@ -5,8 +5,8 @@ both the train and test sets of a grouping split.
 """
 import numpy as np
 
-from topocell.splits import SPLIT_TYPES, all_splits, has_leakage, make_split
-from topocell.synthetic import make_lineage
+from stdd.splits import SPLIT_TYPES, all_splits, has_leakage, make_split
+from stdd.synthetic import make_lineage
 
 
 def test_grouping_splits_have_no_leakage():

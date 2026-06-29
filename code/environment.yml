@@ -1,4 +1,4 @@
-name: topocell
+name: stdd
 channels: [conda-forge]
 dependencies:
   - python=3.13

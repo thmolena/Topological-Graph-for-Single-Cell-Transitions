@@ -5,8 +5,8 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401  (puts src/ on sys.path)
 
-from topocell.config import Config
-from topocell.runner import run
+from stdd.config import Config
+from stdd.runner import run
 
 
 def main() -> None:

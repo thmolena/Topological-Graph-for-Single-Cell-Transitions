@@ -3,12 +3,12 @@
 # reported-scale numbers come from configs/full.yaml.
 name: smoke
 seed: 0
-n_cells: 400
+n_states: 400
 n_features: 8
-n_branches: 3
-n_donors: 4
-n_batches: 2
-n_perturbations: 3
+n_phase_branches: 3
+n_devices: 4
+n_shot_batches: 2
+n_hamiltonians: 3
 noise: 0.7
 rare_fraction: 0.05
 k: 15

@@ -1,7 +1,7 @@
 """The synthetic lineage must have the structure the benchmark advertises."""
 import numpy as np
 
-from topocell.synthetic import make_lineage
+from stdd.synthetic import make_lineage
 
 
 def test_branches_and_states():

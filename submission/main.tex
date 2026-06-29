@@ -7,8 +7,8 @@
 \usepackage{siunitx}
 \usepackage{microtype}
 \usepackage{xcolor}\definecolor{nmiaccent}{HTML}{1A4E8A}
-\usepackage[colorlinks=true,allcolors=nmiaccent]{hyperref}
-\graphicspath{{code/figures/}}
+\usepackage[hidelinks]{hyperref}
+\graphicspath{{figures/}}
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{proposition}[theorem]{Proposition}
@@ -30,28 +30,20 @@
 \date{\today}
 
 \begin{abstract}
-Classifying the phase of a parameterized quantum many-body system as a control parameter is swept across a
-quantum phase transition---from the measurement-derived features of classical shadows---is confounded by
-device-to-device and shot-noise variation and by the rarity of the critical regimes that matter most. The
-graph operator used to propagate phase labels across the similarity graph of quantum states, the
-self-adjoint normalized adjacency $S=D^{-1/2}AD^{-1/2}$, is poorly matched to this task: it is reversible,
-so it cannot encode the directed arrow of the drive, and, built over all states, it consults held-out
-connectivity at inference, conflating the value of diffusion with a transductive information advantage. We
-tackle both challenges by introducing a spectral-truncated, drive-directed graph operator that benefits
-from three innovations: a non-self-adjoint forward propagator that transports labels along the sweep, a
-band-limiting spectral truncation that denoises the operator into a closed-form solve, and an out-of-sample
-Nystr\"om extension that renders the classifier inductive and device-transferable. The truncation realizes,
-on the state graph, the spectral truncation of multiplication operators from $C^*$-algebraic kernel
-machines, generating a genuinely noncommutative truncated operator $*$-algebra with a positive-definite
-Gram kernel. On a seeded synthetic benchmark emulating a parameterized quantum system ($n=\num{3000}$
-states, $5$ seeds), the inductive operator improves held-out phase-classification accuracy over a matched
-inductive $k$NN classifier on all four leakage-checked transfer protocols ($\num{0.6856}$ versus
-$\num{0.5992}$) and recovers a rare critical regime the baseline almost never finds (recall $\num{0.3322}$
-versus $\num{0.0151}$), with its largest margin on forward extrapolation across the sweep---precisely where
-smoothing is weakest. A split-conformal layer supplies distribution-free coverage ($\num{0.8968}$ against a
-$\num{0.90}$ target) and temperature scaling reduces the expected calibration error by \SI{73}{\percent}.
-All data are synthetic; validation on classical shadows from a programmable quantum simulator is the
-decisive next step.
+We introduce a spectral-truncated, drive-directed graph operator that inductively classifies the phase of a
+parameterized quantum many-body system as a control parameter is swept across a transition, confounded by
+device variation, shot noise, and the rarity of critical regimes. The symmetric normalized adjacency
+$S=D^{-1/2}AD^{-1/2}$ used to propagate labels is reversible, discarding the directed arrow of the drive,
+and, built over all states, consults held-out connectivity at inference. Our operator fixes both with three components: a non-self-adjoint forward propagator
+transporting labels along the sweep, a band-limiting spectral truncation that denoises it into a closed-form
+solve, and an out-of-sample Nystr\"om extension making the classifier inductive and transferable. The truncation transplants onto the state graph the
+machinery of $C^*$-algebraic kernel machines, yielding a noncommutative operator $*$-algebra with a
+positive-definite kernel. On a seeded synthetic benchmark ($n=\num{3000}$ states), it beats a matched inductive
+$k$NN classifier across all four leakage-checked transfer protocols ($\num{0.6856}$ versus $\num{0.5992}$)
+and recovers a rare critical regime the baseline almost never finds (recall $\num{0.3322}$ versus
+$\num{0.0151}$), with its largest margin on forward extrapolation. A split-conformal layer adds distribution-free coverage against a $\num{0.90}$ target, and
+temperature scaling cuts calibration error by \SI{73}{\percent}. All data are synthetic and the
+pipeline is fully reproducible; validation on classical shadows from a programmable simulator is the next step.
 \end{abstract}
 
 \maketitle
@@ -62,59 +54,88 @@ Programmable quantum simulators now prepare and measure many-body states across 
 a central task in machine learning for quantum physics is to identify the \emph{phase} a state occupies
 from its measurement record---typically the randomized-measurement data of classical shadows
 \cite{huang2020shadows,elben2023randomized}, which compress an exponentially large state into a tractable
-feature vector. Recognizing phases and locating transitions from such data is by now a workhorse of the
-field \cite{carrasquilla2017ml,vannieuwenburg2017confusion,carleo2019rmp,biamonte2017qml}. Two structural
-features of these data shape any classifier. First, the shadow features of a parameterized system
-concentrate near a low-dimensional manifold---the phase diagram---that is routinely approximated by a
-$k$-nearest-neighbor ($k$NN) similarity graph before clustering, embedding, or kernel learning
-\cite{coifman2006diffusion,belkin2003laplacian,luxburg2007spectral,vandermaaten2008tsne,havlicek2019,schuld2019}.
-Second, the physically decisive regimes---quantum critical points, narrow topological windows---are
-frequently rare, and ordinary classifiers, trained to minimize average error, miss them.
+feature vector. Recognizing phases and locating transitions from such data is a workhorse of the
+field \cite{carrasquilla2017ml,vannieuwenburg2017confusion,carleo2019rmp,biamonte2017qml,carrasquilla2020review},
+spanning supervised classifiers, unsupervised discovery of order parameters by
+clustering, principal-component analysis, and variational autoencoders
+\cite{wang2016discovering,wetzel2017unsupervised}, diffusion-map detection of
+topological order \cite{rodriguez2019topological}, and provably sample-efficient
+phase classification from local measurements \cite{huang2022provable}, yet two
+structural features of the data defeat the standard classifier. First, the shadow features of a
+parameterized system concentrate near a low-dimensional manifold---the phase diagram---routinely
+approximated by a $k$-nearest-neighbor ($k$NN) similarity graph before clustering, embedding, or kernel
+learning
+\cite{coifman2006diffusion,belkin2003laplacian,luxburg2007spectral,vandermaaten2008tsne,havlicek2019,schuld2019}---%
+the non-Euclidean, graph-and-manifold geometry that geometric deep learning takes as its
+domain \cite{bronstein2017geometric}.
+Second, the physically decisive regimes---quantum critical points, narrow topological windows---are rare,
+and classifiers trained to minimize average error miss them.
 
-The canonical response to both features is graph-based semi-supervised learning
-\cite{zhu2002labelprop,zhou2004local}: phase labels are allowed to diffuse over the state graph so that
-each state borrows statistical strength from its neighborhood. The diffusion operator used almost
-universally is the symmetric normalized adjacency $S=D^{-1/2}AD^{-1/2}$ and its Laplacian $L=D-A$
-\cite{coifman2006diffusion}. This object carries two limitations that bear directly on classification
-across a sweep, and that motivate the present work. (i) It is self-adjoint, hence reversible: it cannot
-encode the directed arrow of the drive, even though the control-parameter sweep supplies exactly that
-arrow and directed, non-Hermitian transition operators are the natural language of driven and open quantum
-dynamics \cite{chung2005directed,ashida2020nonhermitian,sachdev2011qpt}. (ii) Built over all states, it is
-transductive: it consults the held-out states' connectivity at inference, so a measured accuracy gain over
-an inductive point classifier conflates the value of diffusion with a transductive information
-advantage---the confound that comparable studies flag as their decisive missing control.
+The canonical response is graph-based semi-supervised learning
+\cite{zhu2002labelprop,zhou2004local,kipf2017gcn,scarselli2009gnn,belkin2006manifold}: phase labels diffuse over the state graph so that each state borrows
+statistical strength from its neighborhood. The diffusion operator used almost universally is the symmetric
+normalized adjacency $S=D^{-1/2}AD^{-1/2}$ and its Laplacian $L=D-A$ \cite{coifman2006diffusion}, and it
+carries two defects that bear directly on classification across a sweep. (i) It is self-adjoint, hence
+reversible: it cannot encode the directed arrow of the drive, even though the control-parameter sweep
+supplies exactly that arrow and directed, non-Hermitian transition operators are the native language of
+driven and open quantum dynamics \cite{chung2005directed,ashida2020nonhermitian,sachdev2011qpt,bergholtz2021exceptional}---
+just as spectral learning on directed graphs has turned to complex Hermitian (magnetic-Laplacian) operators
+that encode edge orientation in their phase \cite{zhang2021magnet}. (ii)
+Built over all states, it is transductive: it consults the held-out states' connectivity at inference, so a
+measured accuracy gain over an inductive point classifier conflates the value of diffusion with a
+transductive information advantage---the confound that comparable studies flag as their decisive missing
+control.
 
-Here, we take both limitations as design targets and introduce a spectral-truncated, drive-directed graph
-operator, which we develop into a falsifiable quantum-phase classifier. Rather than re-applying label
+We turn both defects into design targets and introduce a spectral-truncated, drive-directed graph
+operator that we develop into a falsifiable quantum-phase classifier. Rather than re-applying label
 propagation, we contribute four innovations. (1) We construct a \emph{directed} propagator $P$ by
 reweighting each edge $i\!\to\!j$ with a bounded forward kernel $\kappa(s_j-s_i)$ of the control-parameter
-increment and row-normalizing; $P$ is non-self-adjoint---the single state-graph instance of the operator
+increment and row-normalizing; $P$ is non-self-adjoint (relative non-normality $\nu(P)=\num{0.0370}$)---the single state-graph instance of the operator
 noncommutativity that recent $C^*$-algebraic kernel machines exploit for expressiveness
 \cite{hashimoto2026spectral,vansuijlekom2021spectral,connes2021truncations}---and it transports labels
 along the sweep rather than merely smoothing them across it. (2) We \emph{band-limit} the diffusion by
 spectral truncation to the leading $r$ graph-Fourier modes, denoising a lazy directed walk into a
 closed-form solve; this is precisely the spectral truncation of multiplication operators of noncommutative
 geometry, and because the truncated product is \emph{not} the product of the truncations, it generates a
-second, genuinely noncommutative structure with a positive-definite Gram kernel---the state-graph instance
+second, genuinely noncommutative structure with a positive-definite Gram kernel ($\lambda_{\min}=\num{1.62}>0$)---the state-graph instance
 of a $C^*$-algebraic kernel. (3) We render the classifier \emph{inductive} through an out-of-sample
 Nystr\"om extension \cite{williams2001nystrom,bengio2004oos}, so the matched inductive control is the
 method itself rather than a missing experiment, and the trained operator transfers to states from a device
 it never saw. (4) We calibrate the rare-regime prediction with a distribution-free \emph{conformal} layer
-\cite{vovk2005algorithmic,lei2018distribution,guo2017calibration} and replace the passive
+\cite{vovk2005algorithmic,lei2018distribution,guo2017calibration,angelopoulos2021gentle,romano2020aps,huang2023cfgnn}
+and replace the passive
 connected-component count of prior work with a genuine multiscale \emph{persistent-homology} descriptor
-\cite{edelsbrunner2010computational,carlsson2009topology}.
+\cite{edelsbrunner2010computational,carlsson2009topology}, of the kind that already yields quantitative,
+interpretable order parameters for phase transitions \cite{cole2021persistent}.
 
 We evaluate this operator against the symmetric smoother and a matched point classifier under identical,
-leakage-checked conditions, and find that the directed, truncated, inductive operator improves held-out
-accuracy on every transfer protocol, recovers a rare critical regime the baseline misses, and---uniquely---%
-rescues forward extrapolation across the sweep. All experiments run on a seeded synthetic benchmark that
-emulates the shadow-feature geometry of a parameterized quantum system: this is a controlled stand-in, not
-quantum-device data, and we are explicit about that throughout. Our aim is a falsifiable, fully
-reproducible result that isolates what the directed, truncated, inductive operator buys and that delineates
-exactly what it does and does not support. The analytical guarantees stated below are proved in full in
+leakage-checked conditions. The directed, truncated, inductive operator improves held-out accuracy on every
+transfer protocol (mean \num{0.6856} versus \num{0.5992}), recovers a rare critical regime the baseline
+misses (rare-state recall \num{0.3322} versus \num{0.0151}), and---uniquely---rescues forward
+extrapolation across the sweep ($+\num{0.1749}$ accuracy on the schedule split). All experiments run on a seeded synthetic benchmark that emulates the
+shadow-feature geometry of a parameterized quantum system, a controlled stand-in rather than
+quantum-device data; the result is falsifiable and fully reproducible, isolating exactly what the directed,
+truncated, inductive operator buys and what it does and does not support. The analytical guarantees stated
+below are proved in full in
 Appendix~\ref{sec:theory}; numerical and reproducibility details are collected in
 Appendix~\ref{sec:methods}; and a self-contained, from-scratch derivation of every implemented component is
 given in Appendix~\ref{sec:scratch}.
+
+This work is the latest entry in a program that treats the spectral truncation of operators as a common
+design primitive across quantum optimization, simulation, and error correction. The same primitive recurs
+under graph-conditioned trust regions and uncertainty calibration for query-efficient quantum approximate
+optimization \cite{huynh2026gctr,huynh2026gctrcal,huynh2026gctrcalpro}, the measurement and query-budget
+accounting of warm-started low-depth circuits \cite{huynh2026meascost,huynh2026certqb}, topology-conditioned
+parameter transfer and operator-spectral priors for schedule reuse
+\cite{huynh2026paramxfer,huynh2026paramxferB,huynh2026ostqaoa,huynh2026topoqaoa}, commutator-graph and
+Lie-algebraic truncation of product-formula error \cite{huynh2026topoham,huynh2026lie}, and the
+transfer-operator, covariance-aware, and gauge-equivariant decoding of structured noise in quantum error
+correction \cite{huynh2026gnndec,huynh2026topoqec,huynh2026covdec,huynh2026fiber}, and
+structure-preserving learning of open-system dynamics \cite{huynh2026cptppinn}. The present manuscript
+carries that truncation onto the state graph of a parameterized quantum system, where the band-limiting
+projector $\Pi_r$ plays the role the residual or schedule truncation plays elsewhere in the series, and
+realizes on it the spectral truncation of multiplication operators that the
+operator-spectral prior of Ref.~\cite{huynh2026ostqaoa} uses for QAOA schedule transfer.
 
 \begin{figure*}[t]
 \centering
@@ -209,7 +230,9 @@ separate control experiment. The inductive classifier builds $A$, $U_r$, and $P$
 only and labels a held-out state $x_\ast$ by a Gaussian-weighted average of the training field over its
 nearest \emph{training} states, $\widehat F(x_\ast)=\sum_{i\in\mathcal N(x_\ast)}w_iF^\star_{\mathrm{tr}}(x_i)$%
 ---an out-of-sample Nystr\"om/Nadaraya--Watson extension \cite{williams2001nystrom,bengio2004oos} that never
-forms a test--test edge and never reads held-out adjacency (Theorem~\ref{thm:inductive}). The matched
+forms a test--test edge and never reads held-out adjacency (Theorem~\ref{thm:inductive}). This is the same
+transductive-to-inductive shift that node-embedding methods make when they learn to aggregate a node's
+neighborhood rather than memorize per-node embeddings \cite{hamilton2017graphsage,velickovic2018gat}. The matched
 inductive control is therefore the method itself, not an experiment we leave undone, and because inference
 on a new state consults only the trained field, the operator transfers to shadow data from a device or
 calibration it never saw. It is this inductive variant that we put forward throughout.
@@ -230,13 +253,13 @@ targets the rare critical regime.
 We evaluate the operator on a fully seeded synthetic benchmark that emulates the shadow-feature geometry of
 a parameterized quantum system, comparing the inductive spectral-truncated directed-diffusion (STDD)
 classifier---the method---against its transductive variant, symmetric label propagation, and a matched
-inductive $k$NN baseline, under four leakage-checked transfer protocols. Every reported number is generated
+inductive $k$NN baseline under four leakage-checked transfer protocols. Every reported number is generated
 verbatim from the run artifact \texttt{results/summary.json} (Appendix~\ref{sec:methods}); none is typed by
 hand.
 
 \subsection{A controlled phase sweep with device, noise, and control-parameter structure}
 Our benchmark reproduces the device, calibration, and control-parameter structure a real phase classifier
-must handle while remaining bit-for-bit reproducible (Figs.~\ref{fig:schematic} and \ref{fig:lineage}).
+must handle while remaining bit-for-bit reproducible (Figs.~\ref{fig:schematic} and \ref{fig:sweep}).
 States live in a low-dimensional shadow-feature space---a stand-in for the classical-shadow or
 randomized-measurement features of a parameterized many-body system---and trace a phase diagram of three
 phases (a disordered parent phase and two ordered phases that bifurcate at the critical control parameter
@@ -330,12 +353,12 @@ The table is generated verbatim by \texttt{scripts/make\_tables.py} from \texttt
 value is typed by hand.}
 \label{tab:main}
 \setlength{\tabcolsep}{8pt}
-\input{code/results/main_results.tex}
+\input{tables/main_results.tex}
 \end{table*}
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\linewidth]{fig_lineage.pdf}
+\includegraphics[width=\linewidth]{fig_sweep.pdf}
 \caption{\textbf{The synthetic phase sweep.} Each point is one of the $n=\num{3000}$ quantum-state samples
 of the full-scale configuration, plotted in the first two shadow-feature dimensions and colored by the
 control parameter $s$ along the perceptually uniform, color-blind-safe viridis axis (the arrow the directed
@@ -344,7 +367,7 @@ is highlighted as stars ($\sim$\SI{4}{\percent} of states). Inset: the degree-$0
 $\beta_0(\epsilon)$ curve of the state cloud (log scale), a genuine multiscale topological descriptor of
 the phase diagram that replaces the constant connected-component count of prior work. The figure
 regenerates deterministically from the run configuration in \texttt{summary.json}.}
-\label{fig:lineage}
+\label{fig:sweep}
 \end{figure}
 
 \begin{figure*}[t]
@@ -381,6 +404,9 @@ calibration guarantee---a prerequisite for trusting a phase label estimated from
 stress that the coverage guarantee holds under exchangeability of calibration and test states; under the
 grouping-transfer splits, where the held-out group induces a distribution shift, coverage is only
 approximate, and we report the exchangeable-hold-out figure as the regime in which the theorem applies.
+Restoring an exact guarantee under such shift would require a weighted conformal scheme with a known or
+estimated likelihood ratio between calibration and test covariates \cite{tibshirani2019covariateshift},
+which we leave to future work.
 
 \begin{figure}[t]
 \centering
@@ -398,8 +424,8 @@ from \texttt{results/summary.json}.}
 Replacing the passive connected-component count of prior work with the degree-$0$ persistence barcode turns
 the topology of the phase diagram into an informative, scale-aware signal. The $\beta_0(\epsilon)$ curve of
 the state cloud falls from \num{3000} components at scale $\epsilon=1.0$ to $9$ at $\epsilon=3.5$
-(Fig.~\ref{fig:lineage}, inset), and the longest bars flag the well-separated pockets where the critical
-states reside. A persistence-guided active-sampling policy---scoring unlabeled states by prediction
+(Fig.~\ref{fig:sweep}, inset), and the longest bars flag the well-separated pockets where the critical
+states reside. A persistence-guided active-sampling policy \cite{settles2009active}---scoring unlabeled states by prediction
 uncertainty times per-state topological isolation---raises rare-state recall on the remaining unlabeled
 states to \num{0.3941} ($\pm\num{0.1910}$), against \num{0.0481} ($\pm\num{0.0445}$) for uniform random
 querying and \num{0.3556} for the inverse-density policy of prior work, spending \SI{40.0}{\percent} of its
@@ -417,26 +443,25 @@ $M_\phi,M_\psi$ are truncated multiplication operators for the first two shadow-
 \label{tab:extended}
 \setlength{\tabcolsep}{4pt}
 \footnotesize
-\input{code/results/extended_results.tex}
+\input{tables/extended_results.tex}
 \end{table}
 
 \section{Discussion and conclusion}
 \label{sec:discussion}
-In this manuscript, we introduced a spectral-truncated, drive-directed graph operator for classifying
-quantum phases across a control-parameter sweep. Within a controlled synthetic benchmark, conditioning the
-phase prediction on this directed, band-limited operator helps---and helps in a way the symmetric smoother
-cannot. The directional, non-self-adjoint propagator transports labels along the sweep, which both recovers
-a rare critical regime that a matched point classifier almost entirely misses and, uniquely, rescues
-forward extrapolation across the transition. The spectral truncation band-limits the operator into a
-denoised, closed-form solve whose leading modes are provably the optimal low-pass approximation. Most
-critically, the out-of-sample Nystr\"om extension makes the comparison inductive: the method beats the
+We introduced a spectral-truncated, drive-directed graph operator for classifying quantum phases across a
+control-parameter sweep, and within a controlled synthetic benchmark it outperforms the symmetric smoother
+on the dimensions that matter. The directional, non-self-adjoint propagator transports labels along the
+sweep, recovering a rare critical regime that a matched point classifier almost entirely misses and,
+uniquely, rescuing forward extrapolation across the transition. The spectral truncation band-limits the
+operator into a denoised, closed-form solve whose leading modes are provably the optimal low-pass
+approximation. The out-of-sample Nystr\"om extension makes the comparison inductive: the method beats the
 point classifier on every transfer protocol without ever seeing held-out connectivity, so the accuracy gain
-is not the transductive information advantage that inflates symmetric-smoothing studies---it is the matched
-inductive control those studies identify as their decisive missing experiment, and it is what lets the
-trained operator transfer to states from an unseen device. The conformal layer converts the calibration
-penalty of graph smoothing into a distribution-free coverage guarantee, and the degree-$0$ persistence
-barcode replaces a passive connected-component count with an informative, scale-aware topology signal that
-guides active recovery of the critical regime.
+is not the transductive information advantage that inflates
+symmetric-smoothing studies---it is the matched inductive control those studies identify as their decisive
+missing experiment, and it is what lets the trained operator transfer to states from an unseen device. The
+conformal layer converts the calibration penalty of graph smoothing into a distribution-free coverage
+guarantee, and the degree-$0$ persistence barcode replaces a passive connected-component count with an
+informative, scale-aware topology signal that guides active recovery of the critical regime.
 
 These results connect the long-standing intuition of graph-based semi-supervised learning
 \cite{zhou2004local,zhu2002labelprop} to the machine-learning-for-quantum-physics program of recognizing
@@ -444,22 +469,21 @@ phases from measurement data \cite{carrasquilla2017ml,carleo2019rmp,biamonte2017
 advance is to build the classifier from a spectrally truncated, drive-directed operator, in the spirit of
 $C^*$-algebraic spectral-truncation kernel machines
 \cite{hashimoto2026spectral,vansuijlekom2021spectral,connes2021truncations}, and to make it inductive and
-conformally calibrated. We are precise about how this relates to that line of work: we instantiate spectral
-truncation and operator noncommutativity on the state graph and supply a positive-definite noncommutative
-Gram kernel (Theorem~\ref{thm:kernel}), but we do \emph{not} develop a new vector-valued reproducing-kernel
-learning framework or a variational quantum model as that broader program does
+conformally calibrated. The relation to that line of work is sharp: we instantiate spectral truncation and
+operator noncommutativity on the state graph and supply a positive-definite noncommutative Gram kernel
+(Theorem~\ref{thm:kernel}), but we do \emph{not} develop a new vector-valued reproducing-kernel learning
+framework or a variational quantum model as that broader program does
 \cite{havlicek2019,schuld2019,patti2022multibasis,cerezo2021vqa}. Our contribution lies along an orthogonal
 axis---a directed (non-self-adjoint) transport operator made inductive and conformally calibrated for
 quantum-phase classification---and the kernel $\mathcal K$ enters as the structural Gram object rather than
-as a learned reproducing-kernel Hilbert space (RKHS) or a parameterized circuit. The gains are real but
-should not be oversold; all in all, a directed, truncated, and inductive graph operator offers a principled
-and falsifiable arena for classifying quantum phases from measurement data, whose decisive test is
-validation on classical shadows from a programmable quantum simulator. The limitations below bound every
-claim above.
+as a learned reproducing-kernel Hilbert space (RKHS) or a parameterized circuit. A directed, truncated, and
+inductive graph operator thus offers a principled and falsifiable arena for classifying quantum phases from
+measurement data, whose decisive test is validation on classical shadows from a programmable quantum
+simulator. The limitations below bound every claim above.
 
 \subsection{Limitations}
 \label{sec:limitations}
-We list the limitations plainly because they bound every claim above.
+The following limitations bound every claim above.
 (1) \emph{Synthetic data.} All numbers come from a generated benchmark that emulates shadow-feature
 geometry, not measurements from a quantum device; the magnitudes need not transfer to real classical-shadow
 data, where shot noise, finite sampling, and device drift are far more severe.
@@ -497,7 +521,7 @@ scientific Python ecosystem (NumPy, SciPy, scikit-learn, NetworkX, and Matplotli
 No quantum-device data were used or generated. All results derive from a seeded synthetic benchmark
 regenerated deterministically by the code; the run artifacts (\texttt{summary.json} and the generated
 tables and figures) are contained in the repository accompanying this article. The reference implementation
-(\texttt{topocell}, installable with \texttt{pip install .}), configurations, tests, and scripts to
+(\texttt{stdd}, installable with \texttt{pip install .}), configurations, tests, and scripts to
 reproduce every number, table, and figure are provided there. Honest ingest stubs for real classical-shadow
 and perturbed-Hamiltonian data are included but intentionally not exercised here; all experiments are
 reproducible on commodity hardware.
@@ -827,10 +851,10 @@ Tables~\ref{tab:main} and \ref{tab:extended} are generated verbatim from it by
 \label{sec:scratch}
 This appendix is written to be read top-to-bottom by someone who has seen linear algebra and basic
 probability but not graph-based semi-supervised learning or operator theory. Each part names the source
-file it maps to in the package \texttt{topocell}, so that theory and implementation can be read side by
+file it maps to in the package \texttt{stdd}, so that theory and implementation can be read side by
 side.
 
-\paragraph{The problem and the data (\texttt{src/topocell/synthetic.py}).}
+\paragraph{The problem and the data (\texttt{src/stdd/synthetic.py}).}
 A measurement campaign on a parameterized quantum system yields, for each prepared state, a feature vector
 of estimated observables (a classical shadow). States lie near a low-dimensional manifold---the phase
 diagram. The task is classification: predict the discrete phase of a state under a condition not directly
@@ -1065,6 +1089,108 @@ Variational quantum optimization with multibasis encodings,
 M.~Cerezo, A.~Arrasmith, R.~Babbush \emph{et al.},
 Variational quantum algorithms,
 \emph{Nat. Rev. Phys.} \textbf{3}, 625 (2021).
+
+\bibitem{huang2022provable}
+H.-Y. Huang, R.~Kueng, G.~Torlai, V.~V.~Albert, and J.~Preskill,
+Provably efficient machine learning for quantum many-body problems,
+\emph{Science} \textbf{377}, eabk3333 (2022).
+
+\bibitem{carrasquilla2020review}
+J.~Carrasquilla,
+Machine learning for quantum matter,
+\emph{Adv. Phys. X} \textbf{5}, 1797528 (2020).
+
+\bibitem{wang2016discovering}
+L.~Wang,
+Discovering phase transitions with unsupervised learning,
+\emph{Phys. Rev. B} \textbf{94}, 195105 (2016).
+
+\bibitem{wetzel2017unsupervised}
+S.~J.~Wetzel,
+Unsupervised learning of phase transitions: From principal component analysis to variational autoencoders,
+\emph{Phys. Rev. E} \textbf{96}, 022140 (2017).
+
+\bibitem{rodriguez2019topological}
+J.~F.~Rodriguez-Nieva and M.~S.~Scheurer,
+Identifying topological order through unsupervised machine learning,
+\emph{Nat. Phys.} \textbf{15}, 790 (2019).
+
+\bibitem{bergholtz2021exceptional}
+E.~J.~Bergholtz, J.~C.~Budich, and F.~K.~Kunst,
+Exceptional topology of non-Hermitian systems,
+\emph{Rev. Mod. Phys.} \textbf{93}, 015005 (2021).
+
+\bibitem{scarselli2009gnn}
+F.~Scarselli, M.~Gori, A.~C.~Tsoi, M.~Hagenbuchner, and G.~Monfardini,
+The graph neural network model,
+\emph{IEEE Trans. Neural Netw.} \textbf{20}, 61 (2009).
+
+\bibitem{hamilton2017graphsage}
+W.~L.~Hamilton, R.~Ying, and J.~Leskovec,
+Inductive representation learning on large graphs,
+\emph{Adv. Neural Inf. Process. Syst.} \textbf{30}, 1024 (2017).
+
+\bibitem{velickovic2018gat}
+P.~Veli\v{c}kovi\'c, G.~Cucurull, A.~Casanova, A.~Romero, P.~Li\`o, and Y.~Bengio,
+Graph attention networks,
+in \emph{Proc. Int. Conf. Learn. Represent. (ICLR)} (2018).
+
+\bibitem{zhang2021magnet}
+X.~Zhang, Y.~He, N.~Brugnone, M.~Perlmutter, and M.~Hirn,
+MagNet: A neural network for directed graphs,
+\emph{Adv. Neural Inf. Process. Syst.} \textbf{34}, 27003 (2021).
+
+\bibitem{bronstein2017geometric}
+M.~M.~Bronstein, J.~Bruna, Y.~LeCun, A.~Szlam, and P.~Vandergheynst,
+Geometric deep learning: Going beyond Euclidean data,
+\emph{IEEE Signal Process. Mag.} \textbf{34}, 18 (2017).
+
+\bibitem{belkin2006manifold}
+M.~Belkin, P.~Niyogi, and V.~Sindhwani,
+Manifold regularization: A geometric framework for learning from labeled and unlabeled examples,
+\emph{J. Mach. Learn. Res.} \textbf{7}, 2399 (2006).
+
+\bibitem{cole2021persistent}
+A.~Cole, G.~J.~Loges, and G.~Shiu,
+Quantitative and interpretable order parameters for phase transitions from persistent homology,
+\emph{Phys. Rev. B} \textbf{104}, 104426 (2021).
+
+\bibitem{angelopoulos2021gentle}
+A.~N.~Angelopoulos and S.~Bates,
+A gentle introduction to conformal prediction and distribution-free uncertainty quantification,
+arXiv:2107.07511 (2021).
+
+\bibitem{romano2020aps}
+Y.~Romano, M.~Sesia, and E.~J.~Cand\`es,
+Classification with valid and adaptive coverage,
+\emph{Adv. Neural Inf. Process. Syst.} \textbf{33}, 3581 (2020).
+
+\bibitem{tibshirani2019covariateshift}
+R.~J.~Tibshirani, R.~Foygel~Barber, E.~J.~Cand\`es, and A.~Ramdas,
+Conformal prediction under covariate shift,
+\emph{Adv. Neural Inf. Process. Syst.} \textbf{32}, 2526 (2019).
+
+\bibitem{huang2023cfgnn}
+K.~Huang, Y.~Jin, E.~J.~Cand\`es, and J.~Leskovec,
+Uncertainty quantification over graph with conformalized graph neural networks,
+\emph{Adv. Neural Inf. Process. Syst.} \textbf{36}, 26699 (2023).
+
+\bibitem{huynh2026gctr} M.~Huynh. Query-Efficient Quantum Approximate Optimization via Graph-Conditioned Trust Regions. arXiv:2604.24803 (2026).
+\bibitem{huynh2026gctrcal} M.~Huynh. Graph-conditioned trust regions for uncertainty-calibrated quantum approximate optimization. Manuscript in preparation (2026).
+\bibitem{huynh2026gctrcalpro} M.~Huynh. Graph-conditioned trust regions for uncertainty-calibrated quantum approximate optimization (extended). Manuscript in preparation (2026).
+\bibitem{huynh2026meascost} M.~Huynh. The measurement cost of warm-started low-depth QAOA. Manuscript in preparation (2026).
+\bibitem{huynh2026certqb} M.~Huynh. Certified query budgets for the quantum approximate optimization algorithm. Manuscript in preparation (2026).
+\bibitem{huynh2026paramxfer} M.~Huynh. Topology-Conditioned QAOA Parameter Transfer for Budgeted Graph Optimization. Manuscript in preparation (2026).
+\bibitem{huynh2026paramxferB} M.~Huynh. Topology-Conditioned QAOA Parameter Transfer for Budgeted Graph Optimization (companion). Manuscript in preparation (2026).
+\bibitem{huynh2026ostqaoa} M.~Huynh. Operator-Spectral Truncated Priors for Query-Efficient QAOA Parameter Search. Manuscript in preparation (2026).
+\bibitem{huynh2026topoqaoa} M.~Huynh. Spectral-truncation graph kernels for QAOA warm starts: topology-conditioned schedule transfer beyond depth one. Manuscript in preparation (2026).
+\bibitem{huynh2026topoham} M.~Huynh. Zero-Overhead Cancellation of the Leading Trotter Error via Commutator-Graph Scheduling. Manuscript in preparation (2026).
+\bibitem{huynh2026lie} M.~Huynh. Advancing the product-formula error--cost frontier with a Lie-algebraic spectral truncation of the residual. Manuscript in preparation (2026).
+\bibitem{huynh2026gnndec} M.~Huynh. Learning to decode correlated quantum errors: a topological graph neural decoder that surpasses minimum-weight matching under structured circuit-level noise. Manuscript in preparation (2026).
+\bibitem{huynh2026topoqec} M.~Huynh. Transfer-Operator Decoding of Structured Noise in Quantum Error Correction. Manuscript in preparation (2026).
+\bibitem{huynh2026covdec} M.~Huynh. Covariance-aware hybrid decoding of surface codes under spatially and temporally correlated noise. Manuscript in preparation (2026).
+\bibitem{huynh2026fiber} M.~Huynh. Syndrome fiber bundle: Gauge-equivariant neural decoding with calibrated uncertainty for correlated quantum noise. Manuscript in preparation (2026).
+\bibitem{huynh2026cptppinn} M.~Huynh. Structure-preserving physics-informed learning of open quantum dynamics with spectral-frame encodings and operator-system truncation. Manuscript in preparation (2026).
 
 \end{thebibliography}
 

@@ -3,10 +3,10 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "topocell"
+name = "stdd"
 version = "0.2.0"
-description = "Spectral-truncated, pseudotime-directed (noncommutative) graph operators for single-cell state-transition forecasting and rare-state recovery"
-readme = { text = "Spectral-truncated noncommutative graph operators for few-label single-cell transition forecasting and rare-state recovery", content-type = "text/plain" }
+description = "Spectral-truncated, drive-directed (noncommutative) graph operators for inductive quantum-phase classification across a control-parameter sweep"
+readme = { text = "Directed spectral-truncated operators for inductive classification of quantum phases across a control-parameter sweep, from classical-shadow features.", content-type = "text/plain" }
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [{ name = "Molena Huynh" }]
@@ -20,7 +20,7 @@ gpu = ["torch>=2.0"]
 dev = ["pytest>=7.0"]
 
 [project.scripts]
-topocell-reproduce = "topocell.reproduce:main"
+stdd-reproduce = "stdd.reproduce:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

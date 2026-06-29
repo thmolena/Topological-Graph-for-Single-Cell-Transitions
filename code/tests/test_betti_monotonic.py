@@ -6,8 +6,8 @@ component count can only stay the same or drop.
 """
 import numpy as np
 
-from topocell.graph import betti0_curve, build_knn_graph, n_connected_components
-from topocell.synthetic import make_lineage
+from stdd.graph import betti0_curve, build_knn_graph, n_connected_components
+from stdd.synthetic import make_lineage
 
 
 def test_betti0_monotone_nonincreasing():

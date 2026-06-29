@@ -9,7 +9,7 @@ from pathlib import Path
 
 import _bootstrap  # noqa: F401
 
-from topocell import audit
+from stdd import audit
 
 
 def main() -> int:

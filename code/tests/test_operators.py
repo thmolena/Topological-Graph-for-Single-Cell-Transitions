@@ -1,8 +1,8 @@
 """Properties of the spectral-truncated, pseudotime-directed graph operators."""
 import numpy as np
 
-from topocell.graph import build_knn_graph
-from topocell.operators import (
+from stdd.graph import build_knn_graph
+from stdd.operators import (
     InductiveSpectralTruncatedDiffusion,
     SpectralTruncatedDiffusion,
     directed_propagator,
@@ -10,9 +10,9 @@ from topocell.operators import (
     nonnormality,
     truncation_commutator_norm,
 )
-from topocell.policy import KNNForecaster
-from topocell.splits import make_split
-from topocell.synthetic import make_lineage
+from stdd.policy import KNNForecaster
+from stdd.splits import make_split
+from stdd.synthetic import make_lineage
 
 
 def test_directed_propagator_is_row_stochastic():
@@ -68,7 +68,7 @@ def test_inductive_beats_point_baseline_on_rare_recovery():
     knn = KNNForecaster(k=15).predict(lin.X, lin.state, split.labeled, split.test)
     std = InductiveSpectralTruncatedDiffusion(k=15, rank=40).predict(
         lin.X, lin.state, split.train, split.test, split.labeled, lin.pseudotime)
-    from topocell.metrics import rare_state_recall
+    from stdd.metrics import rare_state_recall
     y = lin.state[split.test]
     assert rare_state_recall(y, std.pred, lin.rare_state) >= \
         rare_state_recall(y, knn.pred, lin.rare_state)

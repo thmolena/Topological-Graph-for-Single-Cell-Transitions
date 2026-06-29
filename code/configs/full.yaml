@@ -3,12 +3,12 @@
 # the order of a minute or two.
 name: full
 seed: 0
-n_cells: 3000
+n_states: 3000
 n_features: 16
-n_branches: 3
-n_donors: 8
-n_batches: 4
-n_perturbations: 5
+n_phase_branches: 3
+n_devices: 8
+n_shot_batches: 4
+n_hamiltonians: 5
 noise: 0.7
 rare_fraction: 0.04
 k: 20

@@ -2,8 +2,8 @@
 curve is monotone non-increasing -- a genuine multiscale topological invariant."""
 import numpy as np
 
-from topocell.persistence import h0_barcode, per_cell_isolation, persistence_features
-from topocell.synthetic import make_lineage
+from stdd.persistence import h0_barcode, per_cell_isolation, persistence_features
+from stdd.synthetic import make_lineage
 
 
 def test_barcode_has_n_minus_one_finite_bars():

@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "stdd"
+name = "specops-dsto"
 version = "0.2.0"
 description = "Spectral-truncated, drive-directed (noncommutative) graph operators for inductive quantum-phase classification across a control-parameter sweep"
 readme = { text = "Directed spectral-truncated operators for inductive classification of quantum phases across a control-parameter sweep, from classical-shadow features.", content-type = "text/plain" }
@@ -20,6 +20,8 @@ gpu = ["torch>=2.0"]
 dev = ["pytest>=7.0"]
 
 [project.scripts]
+dsto-reproduce = "stdd.reproduce:main"
+# Backwards-compatible alias for the original console command.
 stdd-reproduce = "stdd.reproduce:main"
 
 [tool.setuptools.packages.find]

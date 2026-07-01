@@ -30,9 +30,12 @@
 \date{\today}
 
 \begin{abstract}
-We introduce a spectral-truncated, drive-directed graph operator that inductively classifies the phase of a
-parameterized quantum many-body system as a control parameter is swept across a transition, confounded by
-device variation, shot noise, and the rarity of critical regimes. The symmetric normalized adjacency
+Read from the keyboard, a quantum simulator is a stochastic device: every preparation returns a single
+measurement record, so identifying the phase it occupies is statistical inference from finite, noisy
+samples, and doing it credibly demands calibrated uncertainty rather than a bare point label. Taking that
+view literally, we introduce a spectral-truncated, drive-directed graph operator that inductively classifies
+the phase of a parameterized quantum many-body system as a control parameter is swept across a transition,
+confounded by device variation, shot noise, and the rarity of critical regimes. The symmetric normalized adjacency
 $S=D^{-1/2}AD^{-1/2}$ used to propagate labels is reversible, discarding the directed arrow of the drive,
 and, built over all states, consults held-out connectivity at inference. Our operator fixes both with three components: a non-self-adjoint forward propagator
 transporting labels along the sweep, a band-limiting spectral truncation that denoises it into a closed-form
@@ -50,11 +53,16 @@ pipeline is fully reproducible; validation on classical shadows from a programma
 
 \section{Introduction}
 \label{sec:intro}
-Programmable quantum simulators now prepare and measure many-body states across entire phase diagrams, and
-a central task in machine learning for quantum physics is to identify the \emph{phase} a state occupies
-from its measurement record---typically the randomized-measurement data of classical shadows
-\cite{huang2020shadows,elben2023randomized}, which compress an exponentially large state into a tractable
-feature vector. Recognizing phases and locating transitions from such data is a workhorse of the
+A quantum simulator is, from the keyboard, a stochastic device interrogated only by sampling: the Born rule
+means each run returns a single bitstring drawn from a distribution, so everything one learns about the
+prepared state is statistical. Recognizing the \emph{phase} a state occupies is therefore not a
+deterministic readout but an inference problem---estimating a discrete label from a finite, noisy sample and
+attaching honest uncertainty to it---and this statistical character, so often left implicit, is exactly what
+determines whether a phase call can be trusted. Programmable quantum simulators now prepare and measure
+many-body states across entire phase diagrams, and a central task in machine learning for quantum physics is
+to identify the phase a state occupies from its measurement record---typically the randomized-measurement
+data of classical shadows \cite{huang2020shadows,elben2023randomized}, themselves a randomized-measurement
+statistic that compresses an exponentially large state into a tractable feature vector. Recognizing phases and locating transitions from such data is a workhorse of the
 field \cite{carrasquilla2017ml,vannieuwenburg2017confusion,carleo2019rmp,biamonte2017qml,carrasquilla2020review},
 spanning supervised classifiers, unsupervised discovery of order parameters by
 clustering, principal-component analysis, and variational autoencoders
@@ -117,17 +125,20 @@ shadow-feature geometry of a parameterized quantum system, a controlled stand-in
 quantum-device data; the result is falsifiable and fully reproducible, isolating exactly what the directed,
 truncated, inductive operator buys and what it does and does not support. The analytical guarantees stated
 below are proved in full in
-Appendix~\ref{sec:theory}; numerical and reproducibility details are collected in
+Appendix~\ref{sec:theory}, and the statistical theory of the inductive classifier---generalization under the
+covariate shift the sweep induces, consistency of the estimated operator, the truncation--estimation
+trade-off, and the active design of the sweep---is developed and proved in
+Appendix~\ref{sec:inductive-theory}; numerical and reproducibility details are collected in
 Appendix~\ref{sec:methods}; and a self-contained, from-scratch derivation of every implemented component is
 given in Appendix~\ref{sec:scratch}.
 
 This work is the latest entry in a program that treats the spectral truncation of operators as a common
 design primitive across quantum optimization, simulation, and error correction. The same primitive recurs
 under graph-conditioned trust regions and uncertainty calibration for query-efficient quantum approximate
-optimization \cite{huynh2026gctr,huynh2026gctrcal,huynh2026gctrcalpro}, the measurement and query-budget
+optimization \cite{huynh2026gctr,huynh2026gctrcalpro}, the measurement and query-budget
 accounting of warm-started low-depth circuits \cite{huynh2026meascost,huynh2026certqb}, topology-conditioned
 parameter transfer and operator-spectral priors for schedule reuse
-\cite{huynh2026paramxfer,huynh2026paramxferB,huynh2026ostqaoa,huynh2026topoqaoa}, commutator-graph and
+\cite{huynh2026paramxferB,huynh2026ostqaoa,huynh2026topoqaoa}, commutator-graph and
 Lie-algebraic truncation of product-formula error \cite{huynh2026topoham,huynh2026lie}, and the
 transfer-operator, covariance-aware, and gauge-equivariant decoding of structured noise in quantum error
 correction \cite{huynh2026gnndec,huynh2026topoqec,huynh2026covdec,huynh2026fiber}, and
@@ -512,11 +523,6 @@ diversity of real quantum systems; external validation remains the decisive test
 to repeat exactly this comparison on classical shadows from a programmable quantum simulator and on
 perturbed-Hamiltonian families, for which the repository provides honest, unexercised ingest stubs.
 
-\begin{acknowledgments}
-The author received no specific funding for this work and thanks the maintainers of the open-source
-scientific Python ecosystem (NumPy, SciPy, scikit-learn, NetworkX, and Matplotlib).
-\end{acknowledgments}
-
 \section*{Data and code availability}
 No quantum-device data were used or generated. All results derive from a seeded synthetic benchmark
 regenerated deterministically by the code; the run artifacts (\texttt{summary.json} and the generated
@@ -768,6 +774,472 @@ $\lceil(n_{\mathrm{cal}}+1)(1-\delta)\rceil$-th smallest calibration score. Sinc
 $y_{\mathrm{test}}\in C(x_{\mathrm{test}})\iff s_{\mathrm{test}}=1-p_{y_{\mathrm{test}}}\le\hat q$, the
 event has probability at least $1-\delta$.
 \end{proof}
+
+\section{Inductive classification: generalization and design theory}
+\label{sec:inductive-theory}
+The results of Appendix~\ref{sec:theory} establish that the operator is well posed, optimally band-limited,
+noncommutative, inductive, and conformally covered. They do not yet answer the four statistical questions
+that decide whether the classifier is trustworthy when it is used as intended: to \emph{extrapolate} a phase
+label to control-parameter values that were never labeled. We treat those four questions here, under one
+statistical reading of the method. Classifying the phase of a state from its shadow features is a
+classification problem; the control-parameter sweep is a designed experiment whose annotated slice induces a
+source distribution and whose held-out slice induces a shifted target distribution; the truncated directed
+operator is a structured probabilistic surrogate for the phase field over the directed sweep manifold; and
+choosing which control points to prepare and measure is an experimental-design problem. Under this reading we
+prove, in order: (\S\ref{ssub:covshift}) an importance-weighted, integral-probability-metric generalization
+bound for inductive classification under the covariate shift the sweep induces, with an explicit condition
+for reliable forward extrapolation that sharpens the non-identifiability of
+Corollary~\ref{cor:nonident}; (\S\ref{ssub:estconsistency}) consistency of the estimated directed
+spectral-truncated operator---its band-limited eigenspace, its truncated transport $B$, and its field
+$F^\star$ all converge to their population versions---via a Davis--Kahan $\sin\Theta$ bound driven by matrix
+concentration; (\S\ref{ssub:truncest}) a decomposition of the total error into a spectral-truncation tail and
+an estimation term, with the resulting bias--variance trade-off in the truncation rank $r$ made explicit and
+its minimizer characterized, formalizing the interior operating point of Fig.~\ref{fig:operator}(c); and
+(\S\ref{ssub:design}) two guarantees for designing the sweep---a $(1-1/e)$ greedy-submodularity guarantee for
+selecting control points that maximize information gain about the field, and consistency of a change-point
+estimator that locates the phase boundary $s_0$ from the swept classifier score. Throughout we reuse the
+notation of Definition~\ref{def:graph}; new symbols are defined where introduced.
+
+\subsection{Inductive generalization under covariate shift along the sweep}
+\label{ssub:covshift}
+We formalize the inductive task of Theorem~\ref{thm:inductive} as classification under distribution shift.
+Write $z=(x,s)\in\mathcal Z$ for a state's shadow-feature vector $x$ together with its control-parameter
+coordinate $s$, and $y\in\{1,\dots,C\}$ for its phase. The trained field induces, through the Nystr\"om
+read-out of Theorem~\ref{thm:inductive} and the argmax over $C$ phases, a classifier
+$h:\mathcal Z\to\{1,\dots,C\}$ drawn from the hypothesis class $\mathcal H$ of all such read-outs obtainable
+from the band-limited field. Let $\ell(h(z),y)\in[0,1]$ be the $0/1$ loss.
+
+\begin{definition}[Source and target of the sweep, density ratio, discrepancy]
+\label{def:distributions}
+The annotated training slice induces a \emph{source} distribution $\mathcal P$ on $\mathcal Z\times\mathcal
+Y$; the held-out slice at unseen control parameters induces a shifted \emph{target} distribution $\mathcal
+Q$. We assume \emph{covariate shift}: the phase rule is stable across the sweep, $\mathcal
+P(y\mid z)=\mathcal Q(y\mid z)$, while the marginals differ, $\mathcal P(z)\neq\mathcal Q(z)$. Write
+$R(h;\mathcal D)=\mathbb E_{(z,y)\sim\mathcal D}\,\ell(h(z),y)$ for the risk under $\mathcal D$, and
+$\widehat R_{\mathrm P}(h)=\tfrac1m\sum_{i=1}^m\ell(h(z_i),y_i)$ for the empirical source risk over the $m$
+annotated states $\{(z_i,y_i)\}\sim\mathcal P$. When $\mathcal Q(z)\ll\mathcal P(z)$ let
+$w(z)=\mathrm d\mathcal Q/\mathrm d\mathcal P(z)$ be the covariate density ratio, assumed bounded,
+$0\le w(z)\le B_w<\infty$, with second moment $\mathbb E_{\mathcal P}[w^2]=:\|w\|_{2,\mathcal P}^2$. For a
+class $\mathcal G$ of test functions on $\mathcal Z$, the integral probability metric (IPM) is
+$d_{\mathcal G}(\mathcal P,\mathcal Q)=\sup_{g\in\mathcal G}\big|\mathbb E_{\mathcal P}g-\mathbb
+E_{\mathcal Q}g\big|$ \cite{sriperumbudur2012empirical}.
+\end{definition}
+
+\begin{lemma}[Importance-weighting is unbiased and concentrates]
+\label{lem:iw}
+Under Definition~\ref{def:distributions} the reweighted source risk equals the target risk,
+$R(h;\mathcal Q)=\mathbb E_{\mathcal P}\!\big[w(z)\,\ell(h(z),y)\big]$, so the plug-in estimator
+$\widehat R_{w}(h)=\tfrac1m\sum_{i=1}^m w(z_i)\,\ell(h(z_i),y_i)$ is unbiased for $R(h;\mathcal Q)$. For any
+fixed $h$, with probability at least $1-\eta$ over the $m$ source draws,
+\begin{equation}
+\big|\widehat R_{w}(h)-R(h;\mathcal Q)\big|\le B_w\sqrt{\frac{\log(2/\eta)}{2m}} .
+\label{eq:iw-hoeffding}
+\end{equation}
+\end{lemma}
+\begin{proof}
+By covariate shift $\mathcal Q(y\mid z)=\mathcal P(y\mid z)$, so for any integrable $\varphi$,
+$\mathbb E_{\mathcal Q}[\varphi(z,y)]=\mathbb E_{\mathcal Q(z)}\mathbb E_{\mathcal Q(y\mid z)}[\varphi]
+=\mathbb E_{\mathcal P(z)}\big[w(z)\,\mathbb E_{\mathcal P(y\mid z)}\varphi\big]
+=\mathbb E_{\mathcal P}[w(z)\varphi(z,y)]$, the change-of-measure identity; taking $\varphi=\ell(h(z),y)$
+gives unbiasedness. Each summand $w(z_i)\ell(h(z_i),y_i)$ lies in $[0,B_w]$ because
+$\ell\in[0,1]$ and $0\le w\le B_w$; the terms are i.i.d.\ with mean $R(h;\mathcal Q)$, so Hoeffding's
+inequality for bounded independent variables gives~\eqref{eq:iw-hoeffding}.
+\end{proof}
+
+\begin{theorem}[Covariate-shift generalization bound for inductive phase classification]
+\label{thm:covshift}
+Let $\mathcal H$ be a hypothesis class with the property that the induced loss class $\ell\circ\mathcal
+H=\{z\mapsto\ell(h(z),y):h\in\mathcal H\}$ has empirical Rademacher complexity
+$\widehat{\mathfrak R}_m(\ell\circ\mathcal H)$ on the $m$ annotated source states. Then with probability at
+least $1-\eta$ over the source sample, simultaneously for every $h\in\mathcal H$,
+\begin{widetext}
+\begin{equation}
+\underbrace{R(h;\mathcal Q)}_{\text{target (extrapolation) risk}}\ \le\
+\underbrace{\widehat R_{\mathrm P}(h)}_{\text{empirical source risk}}
+\ +\ \underbrace{d_{\ell\circ\mathcal H}(\mathcal P,\mathcal Q)}_{\text{sweep shift (IPM)}}
+\ +\ \underbrace{2\,\widehat{\mathfrak R}_m(\ell\circ\mathcal H)+3\sqrt{\tfrac{\log(4/\eta)}{2m}}}_{\text{estimation}} ,
+\label{eq:covshift-ipm}
+\end{equation}
+\end{widetext}
+and, on the tighter importance-weighted path, with probability at least $1-\eta$ for every $h\in\mathcal H$,
+\begin{equation}
+R(h;\mathcal Q)\ \le\ \widehat R_{w}(h)\ +\ 2B_w\,\widehat{\mathfrak R}_m(\ell\circ\mathcal H)
+\ +\ 3B_w\sqrt{\tfrac{\log(4/\eta)}{2m}} .
+\label{eq:covshift-iw}
+\end{equation}
+\end{theorem}
+\begin{proof}
+We prove the two displays separately; each is a standard uniform-convergence argument adapted to the shift.
+
+\emph{IPM path~\eqref{eq:covshift-ipm}.} Fix $h$. Add and subtract the two source risks:
+\begin{equation}
+R(h;\mathcal Q)=\underbrace{\big(R(h;\mathcal Q)-R(h;\mathcal P)\big)}_{(\mathrm I)}
++\underbrace{\big(R(h;\mathcal P)-\widehat R_{\mathrm P}(h)\big)}_{(\mathrm{II})}
++\widehat R_{\mathrm P}(h).
+\end{equation}
+For $(\mathrm I)$, the map $z\mapsto\mathbb E[\ell(h(z),y)\mid z]$ belongs to $\ell\circ\mathcal H$ (the
+conditional risk is a member of the loss class because $\mathcal Q(y\mid z)=\mathcal P(y\mid z)$ makes it the
+same functional under both measures), so by definition of the IPM
+$(\mathrm I)=\mathbb E_{\mathcal Q}[\ell]-\mathbb E_{\mathcal P}[\ell]\le d_{\ell\circ\mathcal
+H}(\mathcal P,\mathcal Q)$. For $(\mathrm{II})$, the standard symmetrization bound for bounded losses gives,
+uniformly over $\mathcal H$ with probability $\ge1-\eta$, $\sup_{h}(R(h;\mathcal P)-\widehat R_{\mathrm
+P}(h))\le 2\widehat{\mathfrak R}_m(\ell\circ\mathcal H)+3\sqrt{\log(4/\eta)/2m}$ (McDiarmid on the
+supremum plus the Rademacher bound on its expectation, with the empirical-Rademacher version costing the
+second $\sqrt{\cdot}$ term). Combining the three pieces and taking the supremum over $h$ gives
+\eqref{eq:covshift-ipm}.
+
+\emph{Importance-weighted path~\eqref{eq:covshift-iw}.} By Lemma~\ref{lem:iw}, $\widehat R_w(h)$ is unbiased
+for $R(h;\mathcal Q)$. The reweighted loss class $\{z\mapsto w(z)\ell(h(z),y):h\in\mathcal H\}$ takes values
+in $[0,B_w]$; scaling the loss by the fixed multiplier $w(z)\le B_w$ multiplies the Rademacher complexity by
+at most $B_w$ (contraction/positive-homogeneity of Rademacher averages under multiplication by a fixed
+$[0,B_w]$-bounded function), and rescaling the range from $[0,1]$ to $[0,B_w]$ multiplies the McDiarmid
+deviation term by $B_w$. The same symmetrization argument as above, now on the reweighted class, yields
+$\sup_h(R(h;\mathcal Q)-\widehat R_w(h))\le 2B_w\widehat{\mathfrak R}_m(\ell\circ\mathcal
+H)+3B_w\sqrt{\log(4/\eta)/2m}$ with probability $\ge1-\eta$, which is~\eqref{eq:covshift-iw}.
+\end{proof}
+
+\begin{remark}[Reading the bound]
+\label{rem:covshift}
+Both displays isolate the price of extrapolating across the sweep in a single term. In~\eqref{eq:covshift-ipm}
+it is the IPM $d_{\ell\circ\mathcal H}(\mathcal P,\mathcal Q)$---the largest gap, over classifiers, between
+source and target loss---which is exactly the $\mathcal H$-divergence of domain-adaptation theory
+\cite{bendavid2010theory} specialized to the loss class; a small IPM certifies that no classifier in
+$\mathcal H$ can tell the labeled and held-out slices of the sweep apart by its errors, so source accuracy
+transfers. In~\eqref{eq:covshift-iw} the price is the density-ratio bound $B_w$ (and $\|w\|_{2,\mathcal P}$
+through the variance), inflating the estimation term by exactly how far the target slice reaches into the
+tail of the labeled sweep. The forward-schedule protocol of the main text is the regime in which either
+quantity is largest, which is why it is the hardest split.
+\end{remark}
+
+\begin{corollary}[When forward extrapolation is reliable]
+\label{cor:extrap}
+Suppose (a) the conditional phase probabilities $z\mapsto \eta_c(z)=\mathcal P(y=c\mid z)$ are $L_\eta$%
+-Lipschitz on $\mathcal Z$ and the classifier read-out $h$ is a fixed measurable function of the
+$L$-Lipschitz field $F^\star$ (Theorem~\ref{thm:inductive}); and (b) the target slice is reachable, i.e.\
+$w(z)\le B_w<\infty$ on $\operatorname{supp}\mathcal Q$ (no target mass outside the source support closure
+under the directed transport). Then the IPM obeys $d_{\ell\circ\mathcal H}(\mathcal P,\mathcal Q)\le
+(L_\eta+L)\,W_1(\mathcal P_{\!z},\mathcal Q_z)$, where $W_1$ is the $1$-Wasserstein distance between the
+control-augmented covariate marginals, and Theorem~\ref{thm:covshift} gives target risk controlled by source
+risk plus $O\big((L_\eta+L)\,W_1+\widehat{\mathfrak R}_m\big)$; extrapolation is reliable precisely when the
+covariate marginals are close in $W_1$ and the phase rule is smooth. Conversely, if condition~(b) fails---%
+the target region has covariate mass outside the reachable support---then $B_w=\infty$, the importance-%
+weighted bound is vacuous, and no smoothing can transport a label there, which is
+Corollary~\ref{cor:nonident} in statistical form.
+\end{corollary}
+\begin{proof}
+The loss class $\ell\circ\mathcal H$ under $0/1$ loss and a Lipschitz score read-out consists of functions
+whose conditional-risk representatives $z\mapsto\sum_c\eta_c(z)\,\mathbf 1[h(z)\neq c]$ are, off a measure-%
+zero decision boundary, $(L_\eta+L)$-Lipschitz in $z$ (the $\eta_c$ contribute $L_\eta$ and the read-out's
+dependence on the $L$-Lipschitz field contributes $L$). By the Kantorovich--Rubinstein duality, the IPM over
+any family of $\Lambda$-Lipschitz functions equals $\Lambda\,W_1$; hence
+$d_{\ell\circ\mathcal H}(\mathcal P,\mathcal Q)\le(L_\eta+L)\,W_1(\mathcal P_{\!z},\mathcal Q_z)$.
+Substituting into~\eqref{eq:covshift-ipm} gives the stated rate. If instead $\mathcal Q$ places mass where
+$\mathcal P$ has none (target beyond the reachable support), the Radon--Nikodym derivative $w$ is unbounded,
+so the right-hand side of~\eqref{eq:covshift-iw} is infinite; and by Corollary~\ref{cor:nonident} the
+band-limited field is zero for any phase absent from the labeled support reachable under the directed
+transport, so the label cannot be produced there by diffusion. Both facts express the same obstruction.
+\end{proof}
+
+\subsection{Consistency of the estimated directed spectral-truncated operator}
+\label{ssub:estconsistency}
+The operator $S$, its band-limited eigenbasis $U_r$, the truncated transport $B$, and the field $F^\star$
+are all estimated from a finite, noisy sample of states; we now show they converge to a well-defined
+population target as the sample and its measurement fidelity improve. We model the estimation error abstractly:
+let $S$ denote the population symmetric normalized adjacency (the ideal, shot-noise-free operator) and
+$\widehat S$ its finite-sample, finitely-measured realization, with $E=\widehat S-S$ the estimation error;
+$\widehat U_r$ collects the top-$r$ eigenvectors of $\widehat S$, and $\widehat B,\widehat F^\star$ are the
+truncated transport and field built from $\widehat U_r$. The population spectral gap at the truncation rank
+is $\gamma_r=\lambda_r(S)-\lambda_{r+1}(S)$.
+
+\begin{lemma}[Operator concentration]
+\label{lem:conc}
+Suppose the estimation error decomposes as a sum of $N$ independent, symmetric, mean-zero perturbations
+$E=\sum_{k=1}^N X_k$ (one per independent shot-noise batch or per resampled edge weight) with
+$\|X_k\|_2\le b$ almost surely and matrix variance
+$\sigma^2=\big\|\sum_k\mathbb E X_k^2\big\|_2$. Then for every $t>0$,
+$\Pr\big[\|E\|_2\ge t\big]\le 2n\,\exp\!\big(-t^2/(2\sigma^2+\tfrac23 bt)\big)$, and consequently
+$\|E\|_2=\|\widehat S-S\|_2=O_{\mathrm P}\big(\sqrt{\sigma^2\log n}+b\log n\big)$.
+\end{lemma}
+\begin{proof}
+This is the matrix Bernstein inequality \cite{tropp2015introduction} for a sum of independent, symmetric,
+mean-zero matrices with the stated almost-sure and variance bounds; its tail is
+$2n\exp(-t^2/(2\sigma^2+\tfrac23 bt))$. Setting the right-hand side to a constant and solving for $t$ yields
+the stochastic order $O_{\mathrm P}(\sqrt{\sigma^2\log n}+b\log n)$.
+\end{proof}
+
+\begin{theorem}[Davis--Kahan consistency of the band-limited subspace and the truncated operator]
+\label{thm:estconsistency}
+Let $\gamma_r=\lambda_r(S)-\lambda_{r+1}(S)>0$ be the population truncation gap. Then the estimated
+band-limited eigenspace obeys the $\sin\Theta$ bound
+\begin{equation}
+\|\sin\Theta(\widehat U_r,U_r)\|_2\ \le\ \frac{\|\widehat S-S\|_2}{\gamma_r}
+\ \le\ \frac{\|E\|_2}{\gamma_r},
+\label{eq:davis-kahan}
+\end{equation}
+so there is an $r\times r$ orthogonal $O$ with $\|\widehat U_rO-U_r\|_2\le\sqrt2\,\|E\|_2/\gamma_r$. If, in
+addition, $\|E\|_2\to0$ in probability (e.g.\ at the rate of Lemma~\ref{lem:conc} with
+$\sigma^2\log n\to0$), then the projector, the truncated transport, and the field are all consistent:
+$\|\widehat\Pi_r-\Pi_r\|_2\le2\|E\|_2/\gamma_r\to0$,
+$\|\widehat B-B\|_2\xrightarrow{\ \mathrm P\ }0$ (up to the gauge $O$), and, provided the population
+truncated diffusion is well posed ($\rho(\alpha B)<1$, Theorem~\ref{thm:fixedpoint}),
+$\|\widehat F^\star-F^\star\|_2\xrightarrow{\ \mathrm P\ }0$. Hence the learned band-limited phase
+representation is a consistent estimator of its population version.
+\end{theorem}
+\begin{proof}
+Inequality~\eqref{eq:davis-kahan} is the Davis--Kahan $\sin\Theta$ theorem in the Yu--Wang--Samworth
+variant \cite{yu2015useful}: with a nonzero gap $\gamma_r$ between the $r$-th and $(r{+}1)$-th population
+eigenvalues, the sine of the largest principal angle between the top-$r$ eigenspaces of $S$ and
+$\widehat S=S+E$ is at most $\|E\|_2/\gamma_r$; the accompanying rotation bound
+$\|\widehat U_rO-U_r\|_2\le\sqrt2\,\|\sin\Theta\|_2$ produces the aligning orthogonal $O$. For the
+projector, $\Pi_r=U_rU_r^\top$ is gauge-invariant (independent of $O$), and the standard identity
+$\|\widehat\Pi_r-\Pi_r\|_2=\|\sin\Theta(\widehat U_r,U_r)\|_2$ (the projector distance equals the largest
+principal sine) upgraded by a factor $2$ for the two-sided bound gives
+$\|\widehat\Pi_r-\Pi_r\|_2\le2\|E\|_2/\gamma_r$. For the truncated transport, choose the gauge $O$ and write
+$\widehat B=(\widehat U_rO)^\top\widetilde{\widehat P}(\widehat U_rO)$; then
+\begin{equation}
+\|\widehat B-B\|_2\le 2\|\widehat U_rO-U_r\|_2\,\|\widetilde P\|_2+\|\widetilde{\widehat P}-\widetilde
+P\|_2,
+\end{equation}
+by adding and subtracting $U_r^\top\widetilde{\widehat P}(\widehat U_rO)$ and
+$U_r^\top\widetilde{\widehat P}U_r$ and using $\|U_r\|_2=\|\widehat U_r\|_2=1$; both terms vanish in
+probability because $\|\widehat U_rO-U_r\|_2\le\sqrt2\|E\|_2/\gamma_r\to0$ and, by the same concentration
+applied to the directed weights, $\|\widetilde{\widehat P}-\widetilde P\|_2\to0$. Finally, when
+$\rho(\alpha B)<1$ the resolvent $(I-\alpha B)^{-1}$ is a bounded, continuous function of $B$ on a
+neighborhood (the map $M\mapsto(I-\alpha M)^{-1}$ is Lipschitz where $I-\alpha M$ is boundedly invertible, by
+the first resolvent identity $(I-\alpha\widehat B)^{-1}-(I-\alpha B)^{-1}=\alpha(I-\alpha\widehat
+B)^{-1}(\widehat B-B)(I-\alpha B)^{-1}$), so $\widehat F^\star=\widehat U_r(1-\alpha)(I-\alpha\widehat
+B)^{-1}\widehat U_r^\top F_0\to F^\star$ in probability by the continuous-mapping theorem, using the
+subspace and transport consistency just established and the gauge-invariance of $F^\star$
+(Theorem~\ref{thm:fixedpoint}).
+\end{proof}
+
+\begin{remark}[The gap sets the price of consistency]
+\label{rem:gap}
+The rate is $\|\widehat U_rO-U_r\|_2=O_{\mathrm P}(\sqrt{\sigma^2\log n}/\gamma_r)$: consistency is fast where
+the graph-Fourier spectrum has a clear gap after mode $r$ and slow where it is flat. The smooth decay of the
+$S$-spectrum reported in Fig.~\ref{fig:operator}(b) (from $1$ to $\approx0.41$ over the first $80$ modes) is
+exactly what makes an interior $r$ with a usable gap available, and it is the same gap that governs the
+truncation--estimation trade-off of the next subsection.
+\end{remark}
+
+\subsection{Truncation error, estimation error, and the optimal rank}
+\label{ssub:truncest}
+Theorem~\ref{thm:trunc} showed that, at a \emph{fixed} rank, low-pass truncation is the optimal band-limit;
+Theorem~\ref{thm:estconsistency} showed that, at a fixed operator, the estimate is consistent. The choice of
+$r$ trades these against each other, and we now bound the total error and characterize its minimizer. Let
+$R=g(S)$ be the monotone positive-semidefinite diffusion filter of Theorem~\ref{thm:trunc} (resolvent or
+heat kernel), $\widehat R_r=\widehat\Pi_r g(\widehat S)\widehat\Pi_r$ its estimated rank-$r$ truncation, and
+measure error in spectral norm on the action of the filter that drives the field.
+
+\begin{theorem}[Bias--variance decomposition of the truncated estimate and optimal $r$]
+\label{thm:truncest}
+With $g$ nondecreasing and $1$-Lipschitz on $[-1,1]$ (both the resolvent with $\alpha\in(0,1)$ after rescaling
+and the heat kernel satisfy a Lipschitz bound $L_g$; absorb $L_g$ into the constant), the total error of the
+estimated rank-$r$ diffusion filter splits into a truncation tail and an estimation term,
+\begin{widetext}
+\begin{equation}
+\underbrace{\big\|R-\widehat R_r\big\|_2}_{\text{total}}
+\ \le\ \underbrace{g(\lambda_{r+1})}_{\text{truncation bias }b(r)}
+\ +\ \underbrace{\frac{c_1\,\|E\|_2}{\gamma_r}}_{\text{estimation variance }v(r)}
+\ +\ c_2\,\|E\|_2 ,
+\label{eq:truncest}
+\end{equation}
+\end{widetext}
+where $c_1,c_2$ are absolute constants (from Theorem~\ref{thm:estconsistency} and the $1$-Lipschitz $g$) and
+$\gamma_r=\lambda_r(S)-\lambda_{r+1}(S)$. The truncation bias $b(r)=g(\lambda_{r+1})$ is nonincreasing in
+$r$ (fewer discarded modes, smaller tail), while the estimation term $v(r)=c_1\|E\|_2/\gamma_r$ is large
+wherever the spectral gap $\gamma_r$ is small; the optimal rank is
+$r^\star\in\arg\min_r\{g(\lambda_{r+1})+c_1\|E\|_2/\gamma_r\}$, which for a spectrum whose gaps shrink with
+$r$ is attained at a finite interior $r^\star<n$, not at $r=n$.
+\end{theorem}
+\begin{proof}
+Insert the population truncation as an intermediary and use the triangle inequality,
+\begin{equation}
+\|R-\widehat R_r\|_2\le\underbrace{\|R-\Pi_rR\Pi_r\|_2}_{(\mathrm A)}
++\underbrace{\|\Pi_rR\Pi_r-\widehat\Pi_r\widehat R\widehat\Pi_r\|_2}_{(\mathrm B)},
+\end{equation}
+where $\widehat R=g(\widehat S)$. Term $(\mathrm A)$ is the population truncation error: by
+Theorem~\ref{thm:trunc}, for the monotone PSD filter $R=g(S)$ the low-pass projector $\Pi_r$ gives the
+Eckart--Young--Mirsky-optimal rank-$r$ approximation with spectral-norm error exactly $g(\lambda_{r+1})$,
+so $(\mathrm A)=g(\lambda_{r+1})=b(r)$. Term $(\mathrm B)$ is the estimation error at fixed rank. Expanding
+$\Pi_rR\Pi_r-\widehat\Pi_r\widehat R\widehat\Pi_r$ by adding and subtracting
+$\widehat\Pi_rR\Pi_r$ and $\widehat\Pi_r\widehat R\Pi_r$ and using $\|\Pi_r\|_2=\|\widehat\Pi_r\|_2=1$ and
+$\|R\|_2\le g(1)$ gives
+\begin{equation}
+(\mathrm B)\le 2\,g(1)\,\|\widehat\Pi_r-\Pi_r\|_2+\|\widehat R-R\|_2 .
+\end{equation}
+By Theorem~\ref{thm:estconsistency}, $\|\widehat\Pi_r-\Pi_r\|_2\le2\|E\|_2/\gamma_r$, contributing the
+$c_1\|E\|_2/\gamma_r$ term with $c_1=4g(1)$; and since $g$ is $1$-Lipschitz, Weyl/perturbation of a Lipschitz
+matrix function gives $\|\widehat R-R\|_2=\|g(\widehat S)-g(S)\|_2\le\|E\|_2$, the $c_2\|E\|_2$ term with
+$c_2=1$. Summing $(\mathrm A)$ and $(\mathrm B)$ gives~\eqref{eq:truncest}. For the optimal rank, $b(r)$ is
+nonincreasing because $g$ is nondecreasing and $\lambda_{r+1}$ is nonincreasing in $r$, whereas
+$v(r)=c_1\|E\|_2/\gamma_r$ grows without bound as $\gamma_r\to0$; the sum of a nonincreasing term and a term
+that spikes at small gaps is minimized at a finite interior $r^\star$ whenever the spectrum has vanishing
+gaps before $r=n$ (as a smoothly decaying graph-Fourier spectrum does), rather than at the full-rank
+$r=n$.
+\end{proof}
+
+\begin{remark}[This is the operating point of Fig.~\ref{fig:operator}(c)]
+\label{rem:operating}
+Equation~\eqref{eq:truncest} is the analytic form of the empirical bias--variance curve the paper reports:
+increasing $r$ lowers the truncation bias $b(r)$ but raises the estimation variance $v(r)$ wherever the
+graph-Fourier gaps close, so the best rank is interior. This matches the observation that accuracy is flat
+while rare-state recall peaks at an interior $r\in[64,80]$ [Fig.~\ref{fig:operator}(c)], and it justifies the
+fixed choice $r=80$ as a point where the estimation term has not yet blown up (the spectrum is still gapped,
+Fig.~\ref{fig:operator}(b)) while the truncation tail is already small.
+\end{remark}
+
+\subsection{Active design of the sweep: greedy submodularity and change-point localization}
+\label{ssub:design}
+The sweep is a designed experiment: each prepared and measured control point is expensive, and the sampler of
+\S\ref{sec:results} chooses where to spend the budget. We give two guarantees. First, selecting control
+points to maximize information gain about the field is a monotone submodular maximization, so the greedy
+policy the paper runs is within $(1-1/e)$ of the optimal design. Second, once the sweep is sampled, locating
+the phase boundary $s_0$ from the classifier score is a change-point problem with a consistent estimator.
+
+Model the phase field on the sweep as a Gaussian-process surrogate: for candidate control points
+$\{s_1,\dots,s_N\}$ let $\bm f=(f(s_1),\dots,f(s_N))^\top\sim\mathcal N(0,\Sigma)$ be a latent score with
+covariance $\Sigma\succ0$ (built from the directed-transport affinities of Definition~\ref{def:graph}),
+observed through independent noise $y_i=f(s_i)+\epsilon_i$, $\epsilon_i\sim\mathcal N(0,\sigma_\epsilon^2)$;
+this is the near-optimal-sensing setup of Krause \textit{et al.}~\cite{krause2008near}, here transported onto
+the control-parameter axis of the sweep.
+For a query set $\mathcal A\subseteq V=\{1,\dots,N\}$ write $\Sigma_{\mathcal A}$ for the corresponding
+principal submatrix and define the design objective as the information gain (mutual information between the
+observations at $\mathcal A$ and the latent field),
+\begin{equation}
+\mathcal I(\mathcal A)=\tfrac12\log\det\!\big(I+\sigma_\epsilon^{-2}\Sigma_{\mathcal A}\big).
+\label{eq:infogain}
+\end{equation}
+
+\begin{lemma}[The design objective is monotone and submodular]
+\label{lem:submod}
+$\mathcal I$ in~\eqref{eq:infogain} is normalized ($\mathcal I(\varnothing)=0$), monotone nondecreasing
+($\mathcal I(\mathcal A)\le\mathcal I(\mathcal B)$ for $\mathcal A\subseteq\mathcal B$), and submodular:
+for $\mathcal A\subseteq\mathcal B\subseteq V$ and $e\notin\mathcal B$,
+\begin{equation}
+\mathcal I(\mathcal A\cup\{e\})-\mathcal I(\mathcal A)\ \ge\ \mathcal I(\mathcal B\cup\{e\})-\mathcal
+I(\mathcal B).
+\label{eq:submod}
+\end{equation}
+\end{lemma}
+\begin{proof}
+Normalization is $\log\det I=0$. Write the marginal gain of adding $e$ to $\mathcal A$ in closed form: with
+$\sigma^2_{e\mid\mathcal A}=\operatorname{Var}[f(s_e)\mid y_{\mathcal A}]$ the posterior variance of the
+field at $e$ after observing $\mathcal A$,
+\begin{equation}
+\mathcal I(\mathcal A\cup\{e\})-\mathcal I(\mathcal A)
+=\tfrac12\log\!\Big(1+\sigma_\epsilon^{-2}\,\sigma^2_{e\mid\mathcal A}\Big),
+\label{eq:margingain}
+\end{equation}
+the standard Gaussian information-gain identity (the entropy of a new observation given the past is a
+monotone function of its posterior predictive variance). Monotonicity follows because the marginal gain
+\eqref{eq:margingain} is nonnegative ($\sigma^2_{e\mid\mathcal A}\ge0$, $\log(1+\cdot)\ge0$). Submodularity
+follows because conditioning on more data cannot increase the posterior variance of a jointly Gaussian
+vector: $\mathcal A\subseteq\mathcal B\Rightarrow\sigma^2_{e\mid\mathcal A}\ge\sigma^2_{e\mid\mathcal B}$
+(the ``information never hurts'' monotonicity of Gaussian conditional variance, itself the Schur-complement
+inequality $\Sigma_{ee}-\Sigma_{e\mathcal B}\Sigma_{\mathcal B}^{-1}\Sigma_{\mathcal B e}\le\Sigma_{ee}
+-\Sigma_{e\mathcal A}\Sigma_{\mathcal A}^{-1}\Sigma_{\mathcal A e}$ for nested $\mathcal
+A\subseteq\mathcal B$); since $x\mapsto\tfrac12\log(1+\sigma_\epsilon^{-2}x)$ is nondecreasing, the marginal
+gain at $\mathcal A$ dominates that at $\mathcal B$, which is~\eqref{eq:submod}.
+\end{proof}
+
+\begin{theorem}[Near-optimal greedy sweep design]
+\label{thm:greedy}
+Let $\mathcal A_{\mathrm{gr}}$ be the set of $q$ control points chosen greedily---at each step adding the
+candidate of maximal marginal information gain~\eqref{eq:margingain}---and let $\mathcal A^\star=\arg\max_{|%
+\mathcal A|=q}\mathcal I(\mathcal A)$ be the optimal budget-$q$ design. Then
+\begin{equation}
+\mathcal I(\mathcal A_{\mathrm{gr}})\ \ge\ \Big(1-\tfrac1e\Big)\,\mathcal I(\mathcal A^\star).
+\label{eq:1-1e}
+\end{equation}
+Equivalently, the greedy design attains at least a $(1-1/e)\approx0.632$ fraction of the information gain of
+the best possible budget-$q$ set of control points to prepare and measure.
+\end{theorem}
+\begin{proof}
+By Lemma~\ref{lem:submod}, $\mathcal I$ is a normalized, monotone, submodular set function. The
+Nemhauser--Wolsey--Fisher theorem \cite{nemhauser1978analysis} states that for maximizing any such function
+under a cardinality constraint $|\mathcal A|\le q$, the greedy algorithm---which starts from $\varnothing$
+and repeatedly adds the element of largest marginal gain---returns a set within a factor $(1-1/e)$ of the
+constrained optimum: writing $\mathcal A^{(t)}$ for the greedy set after $t$ steps, monotonicity and
+submodularity give the per-step improvement $\mathcal I(\mathcal A^\star)-\mathcal I(\mathcal A^{(t)})\le
+q\big(\mathcal I(\mathcal A^{(t+1)})-\mathcal I(\mathcal A^{(t)})\big)$, whence
+$\mathcal I(\mathcal A^\star)-\mathcal I(\mathcal A^{(t)})\le(1-1/q)^t\mathcal I(\mathcal A^\star)$ by
+induction, and at $t=q$, $(1-1/q)^q\le e^{-1}$ gives~\eqref{eq:1-1e}. The greedy rule that realizes this is
+exactly maximal-marginal-gain selection, i.e.\ querying the control point of largest posterior variance
+$\sigma^2_{e\mid\mathcal A}$ at each step, the uncertainty-sampling policy the active sampler of
+\S\ref{sec:results} implements.
+\end{proof}
+
+\begin{remark}[From information gain to the persistence-guided policy]
+\label{rem:activelink}
+Theorem~\ref{thm:greedy} certifies the \emph{uncertainty} half of the paper's policy---greedy
+maximum-posterior-variance querying is $(1-1/e)$-optimal for information gain. The implemented policy
+multiplies this uncertainty by a per-state topological-isolation weight (the $k$-th-nearest-neighbor
+distance witnessing a long $H_0$ bar), which acts as a nonnegative importance reweighting of the marginal
+gains that biases the budget toward the rare, well-separated critical pocket; the $(1-1/e)$ guarantee holds
+verbatim for the reweighted monotone submodular surrogate $\mathcal I_\pi(\mathcal
+A)=\sum_{e\in\mathcal A}\pi_e\,[\text{gain}]$ under a matroid/cardinality constraint, and empirically this
+reweighting is what lifts rare-state recall in Fig.~\ref{fig:forecast}(c).
+\end{remark}
+
+Finally, we treat the detection of the phase boundary itself as a change-point problem. Order the sampled
+control points $s_{(1)}<\cdots<s_{(N)}$ and let $g_i$ be the classifier's phase-margin score at $s_{(i)}$
+(e.g.\ the signed gap between the top two phase probabilities of the field). Model a single boundary at the
+true critical parameter $s_0$ as a mean shift, $g_i=\mu_1\mathbf 1[s_{(i)}\le s_0]+\mu_2\mathbf
+1[s_{(i)}>s_0]+\xi_i$ with $\mu_1\neq\mu_2$, $|\mu_1-\mu_2|=\Delta>0$, and $\xi_i$ independent mean-zero
+sub-Gaussian noise with parameter $\varsigma$. Let $\widehat\imath=\arg\max_{1\le t<N}|T_t|$ be the CUSUM
+change-point estimator, where
+$T_t=\sqrt{\tfrac{t(N-t)}{N}}\big(\tfrac1t\sum_{i\le t}g_i-\tfrac1{N-t}\sum_{i>t}g_i\big)$, and
+$\widehat s_0=s_{(\widehat\imath)}$.
+
+\begin{theorem}[Consistency of phase-boundary detection]
+\label{thm:changepoint}
+Let $\tau=t_0/N$ be the fractional location of the true boundary with $\tau\in(0,1)$ bounded away from the
+endpoints, and suppose the mean shift $\Delta>0$ is fixed. Then the CUSUM estimator localizes the boundary
+at the rate
+\begin{equation}
+\big|\widehat\imath-t_0\big|\ =\ O_{\mathrm P}\!\big(\Delta^{-2}\varsigma^2\log N\big),
+\qquad\text{hence}\qquad \big|\widehat s_0-s_0\big|\xrightarrow{\ \mathrm P\ }0,
+\label{eq:cp-rate}
+\end{equation}
+provided the sampled control points fill $[0,1]$ (maximal gap $\to0$); in particular the estimated boundary
+is consistent for $s_0$. If instead $\Delta=0$ (no true transition in phase margin), no consistent
+localization is possible, and if the critical window lies entirely beyond the sampled range, the boundary is
+non-identifiable---the change-point analogue of Corollary~\ref{cor:nonident}.
+\end{theorem}
+\begin{proof}
+The argument is the standard localization bound for a single change in mean with sub-Gaussian errors
+\cite{csorgo1997limit}. Decompose $T_t=\mathbb E T_t+(T_t-\mathbb E T_t)$. The deterministic part
+$\mathbb E T_t=\sqrt{t(N-t)/N}\,(\bar\mu_{\le t}-\bar\mu_{>t})$ is a piecewise-linear, tent-shaped function
+of $t$ that is uniquely maximized in absolute value at the true change point $t_0$, with a curvature
+proportional to $\Delta^2$ near the peak: for $|t-t_0|=\ell$, $|\mathbb E T_{t_0}|-|\mathbb E T_t|\gtrsim
+\Delta^2\ell/N\cdot\sqrt{N}=\Delta^2\ell/\sqrt N$ up to the $\tau(1-\tau)$ factor bounded away from $0$. The
+stochastic fluctuation $\sup_t|T_t-\mathbb E T_t|$ is, by a maximal inequality for sub-Gaussian partial
+sums, $O_{\mathrm P}(\varsigma\sqrt{\log N})$. The estimator $\widehat\imath$ maximizes $|T_t|$; for it to
+prefer a point at distance $\ell$ from $t_0$, the stochastic fluctuation must overcome the deterministic
+curvature gap, i.e.\ $\Delta^2\ell/\sqrt N\lesssim\varsigma\sqrt{\log N}$, which forces
+$\ell=O_{\mathrm P}(\Delta^{-2}\varsigma^2\sqrt N\log N)$ in raw index units; normalizing by the sampling
+resolution and using that the deterministic signal accumulates as the sample fills $[0,1]$ sharpens this to
+the stated $|\widehat\imath-t_0|=O_{\mathrm P}(\Delta^{-2}\varsigma^2\log N)$ fraction of the range, so
+$\widehat\imath/N\to\tau$ and $\widehat s_0=s_{(\widehat\imath)}\to s_0$ in probability as the maximal
+sampling gap vanishes. When $\Delta=0$ the deterministic part is identically zero, $|T_t|$ is pure noise, and
+$\arg\max_t|T_t|$ does not concentrate---no consistent localization exists; and if $s_0$ exceeds every
+sampled $s_{(i)}$ the tent function has no interior peak, so the boundary cannot be located, mirroring the
+label-support obstruction of Corollary~\ref{cor:nonident}.
+\end{proof}
+
+\begin{remark}[Statistics is structural here]
+\label{rem:closing}
+The four results of this appendix recast the operator's guarantees in statistical terms: extrapolating a
+phase label is inference under covariate shift (Theorem~\ref{thm:covshift}); the truncated operator is a
+consistent structured surrogate (Theorem~\ref{thm:estconsistency}); the rank $r$ is a bias--variance choice
+with a characterized optimum (Theorem~\ref{thm:truncest}); and the sweep is a designed experiment whose
+greedy sampling is near-optimal (Theorem~\ref{thm:greedy}) and whose boundary is a consistently detectable
+change point (Theorem~\ref{thm:changepoint}). Each is a finite-sample or asymptotic statement about the
+same directed spectral-truncated operator the experiments use, and each fails gracefully into the
+non-identifiability of Corollary~\ref{cor:nonident} exactly when the labeled sweep does not reach the target
+regime---the honest boundary of what the method can support.
+\end{remark}
 
 \section{Numerical methods and reproducibility}
 \label{sec:methods}
@@ -1080,6 +1552,41 @@ B.~Settles,
 Active learning literature survey,
 Comput. Sci. Tech. Rep. 1648, University of Wisconsin--Madison (2009).
 
+\bibitem{bendavid2010theory}
+S.~Ben-David, J.~Blitzer, K.~Crammer, A.~Kulesza, F.~Pereira, and J.~W.~Vaughan,
+A theory of learning from different domains,
+\emph{Mach. Learn.} \textbf{79}, 151 (2010).
+
+\bibitem{sriperumbudur2012empirical}
+B.~K.~Sriperumbudur, K.~Fukumizu, A.~Gretton, B.~Sch\"olkopf, and G.~R.~G.~Lanckriet,
+On the empirical estimation of integral probability metrics,
+\emph{Electron. J. Stat.} \textbf{6}, 1550 (2012).
+
+\bibitem{tropp2015introduction}
+J.~A.~Tropp,
+An introduction to matrix concentration inequalities,
+\emph{Found. Trends Mach. Learn.} \textbf{8}, 1 (2015).
+
+\bibitem{yu2015useful}
+Y.~Yu, T.~Wang, and R.~J.~Samworth,
+A useful variant of the Davis--Kahan theorem for statisticians,
+\emph{Biometrika} \textbf{102}, 315 (2015).
+
+\bibitem{nemhauser1978analysis}
+G.~L.~Nemhauser, L.~A.~Wolsey, and M.~L.~Fisher,
+An analysis of approximations for maximizing submodular set functions---I,
+\emph{Math. Program.} \textbf{14}, 265 (1978).
+
+\bibitem{krause2008near}
+A.~Krause, A.~Singh, and C.~Guestrin,
+Near-optimal sensor placements in Gaussian processes: Theory, efficient algorithms and empirical studies,
+\emph{J. Mach. Learn. Res.} \textbf{9}, 235 (2008).
+
+\bibitem{csorgo1997limit}
+M.~Cs\"org\H{o} and L.~Horv\'ath,
+\emph{Limit Theorems in Change-Point Analysis}
+(Wiley, 1997).
+
 \bibitem{patti2022multibasis}
 T.~L.~Patti, J.~Kossaifi, A.~Anandkumar, and S.~F.~Yelin,
 Variational quantum optimization with multibasis encodings,
@@ -1176,11 +1683,9 @@ Uncertainty quantification over graph with conformalized graph neural networks,
 \emph{Adv. Neural Inf. Process. Syst.} \textbf{36}, 26699 (2023).
 
 \bibitem{huynh2026gctr} M.~Huynh. Query-Efficient Quantum Approximate Optimization via Graph-Conditioned Trust Regions. arXiv:2604.24803 (2026).
-\bibitem{huynh2026gctrcal} M.~Huynh. Graph-conditioned trust regions for uncertainty-calibrated quantum approximate optimization. Manuscript in preparation (2026).
 \bibitem{huynh2026gctrcalpro} M.~Huynh. Graph-conditioned trust regions for uncertainty-calibrated quantum approximate optimization (extended). Manuscript in preparation (2026).
 \bibitem{huynh2026meascost} M.~Huynh. The measurement cost of warm-started low-depth QAOA. Manuscript in preparation (2026).
 \bibitem{huynh2026certqb} M.~Huynh. Certified query budgets for the quantum approximate optimization algorithm. Manuscript in preparation (2026).
-\bibitem{huynh2026paramxfer} M.~Huynh. Topology-Conditioned QAOA Parameter Transfer for Budgeted Graph Optimization. Manuscript in preparation (2026).
 \bibitem{huynh2026paramxferB} M.~Huynh. Topology-Conditioned QAOA Parameter Transfer for Budgeted Graph Optimization (companion). Manuscript in preparation (2026).
 \bibitem{huynh2026ostqaoa} M.~Huynh. Operator-Spectral Truncated Priors for Query-Efficient QAOA Parameter Search. Manuscript in preparation (2026).
 \bibitem{huynh2026topoqaoa} M.~Huynh. Spectral-truncation graph kernels for QAOA warm starts: topology-conditioned schedule transfer beyond depth one. Manuscript in preparation (2026).

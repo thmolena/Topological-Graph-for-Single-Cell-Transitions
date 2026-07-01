@@ -22,10 +22,10 @@ ORDER = ["std_inductive", "std_transductive", "label_prop", "baseline_knn"]
 # (device / shot-noise / drive schedule / Hamiltonian perturbation). Data keys
 # are unchanged; only the printed label differs.
 SPLIT_LABELS = {
-    "donor": "device",
-    "batch": "noise",
-    "time": "schedule",
-    "perturbation": "Hamiltonian",
+    "device": "device",
+    "shot_batch": "shot noise",
+    "schedule": "schedule",
+    "hamiltonian": "Hamiltonian",
 }
 
 

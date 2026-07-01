@@ -1,4 +1,4 @@
-"""Metric bounds: accuracy, ECE, rare-state recall all live in [0, 1]."""
+"""Metric bounds: accuracy, ECE, rare-phase recall all live in [0, 1]."""
 import numpy as np
 import pytest
 
@@ -25,13 +25,13 @@ def test_ece_in_unit_interval():
 
 def test_rare_recall_bounds():
     y_true = np.array([0, 0, 3, 3, 1])
-    # found both rare cells -> recall 1
-    assert metrics.rare_state_recall(y_true, np.array([0, 0, 3, 3, 1]), rare_state=3) == 1.0
+    # found both rare states -> recall 1
+    assert metrics.rare_state_recall(y_true, np.array([0, 0, 3, 3, 1]), rare_regime=3) == 1.0
     # found one of two -> recall 0.5
-    assert metrics.rare_state_recall(y_true, np.array([0, 0, 3, 0, 1]), rare_state=3) == 0.5
-    # no rare cells in truth -> recall defined as 1 (nothing to miss)
-    assert metrics.rare_state_recall(np.array([0, 1, 2]), np.array([0, 1, 2]), rare_state=3) == 1.0
-    r = metrics.rare_state_recall(y_true, np.zeros_like(y_true), rare_state=3)
+    assert metrics.rare_state_recall(y_true, np.array([0, 0, 3, 0, 1]), rare_regime=3) == 0.5
+    # no rare states in truth -> recall defined as 1 (nothing to miss)
+    assert metrics.rare_state_recall(np.array([0, 1, 2]), np.array([0, 1, 2]), rare_regime=3) == 1.0
+    r = metrics.rare_state_recall(y_true, np.zeros_like(y_true), rare_regime=3)
     assert 0.0 <= r <= 1.0
 
 

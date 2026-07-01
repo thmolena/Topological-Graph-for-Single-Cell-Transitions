@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Run the single-cell forecasting experiment and write results/summary.json."""
+"""Run the quantum-phase classification experiment and write results/summary.json."""
 import argparse
 from pathlib import Path
 
@@ -18,7 +18,7 @@ def main() -> None:
     cfg = Config.load(args.config)
     summary = run(cfg, Path(args.out))
     h = summary["headline"]
-    print(f"[{cfg.name}] cells={h['n_cells']}  states={h['n_states']}  "
+    print(f"[{cfg.name}] states={h['n_states']}  phases={h['n_phases']}  "
           f"inductive STDD acc={h['std_inductive_accuracy']:.4f} "
           f"(+{h['inductive_accuracy_gain']:.4f} vs kNN)  "
           f"rare-recall={h['std_inductive_rare_recall']:.4f} "

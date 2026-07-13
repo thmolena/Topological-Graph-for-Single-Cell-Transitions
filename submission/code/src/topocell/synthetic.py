@@ -1,4 +1,23 @@
-"""Synthetic branching single-cell lineage -- the sanity benchmark.
+"""Synthetic branching benchmark for the directed spectral-truncated operator.
+
+DOMAIN NOTE (read before citing numbers). The manuscript frames this benchmark
+in quantum-many-body language: a control parameter swept across a phase
+transition, with "states", "device", "shot noise", and "Hamiltonian" splits.
+The generator below keeps the older single-cell-lineage vocabulary
+(``branch``/``state``/``donor``/``batch``/``perturbation``/``pseudotime``) because
+the *method* is domain-agnostic: it classifies labelled points on a directed
+similarity graph regardless of what the points physically are. The variable names
+here are the ML-library convention, not a claim about biology; the runner maps
+them to the manuscript's physical axes (donor->device, batch->shot-noise,
+time->sweep schedule, perturbation->Hamiltonian family). These synthetic blobs are
+NOT a first-principles quantum simulation -- they share only the statistical
+structure (branching manifold, drift, a rare critical cluster) the classifier must
+handle. Genuine validation on classical-shadow records from a programmable
+simulator is stated as future work in the manuscript and is not claimed here.
+
+Original design notes follow.
+
+Synthetic branching lineage -- the sanity benchmark.
 
 Real single-cell data (scRNA-seq) is high-dimensional, noisy, and confounded by
 donor, batch and perturbation. We cannot ship it, and we will not fabricate it
